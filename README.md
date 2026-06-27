@@ -31,9 +31,7 @@
 - [Guía de Uso](#guia-de-uso)
 - [Capturas de Pantalla](#capturas-de-pantalla)
 - [Conclusiones y Aprendizaje](#conclusiones-y-aprendizaje)
-- [Equipo y Créditos](#equipo-y-creditos)
-- [Referencias](#referencias)
-- [Acerca de este Documento](#acerca-de-este-documento)
+
 
 ---
 
@@ -168,13 +166,9 @@ El proyecto sigue el principio de **inversión de dependencias**, donde las capa
 | **Services** | Orquestación de hilos, lógica de negocio de las simulaciones y ataques. | Depende de **Domain** y **Infrastructure** (a través de interfaces). |
 | **Presentation** | Interfaz de usuario (WinForms). Controles, formularios y temas. | Depende de **Services** (a través de interfaces), **Domain** y **Infrastructure**. |
 
-**Flujo de dependencias**:  
-`Presentation` → `Services` → `Infrastructure` → `Domain`  
-Todas las capas apuntan hacia **Domain**, que es la capa más estable y sin dependencias externas.
-
 ---
 
-## Diagrama de Clases (Simplificado)
+## Diagrama de Clases
 
 A continuación se muestra un diagrama de clases simplificado con las principales entidades, servicios y relaciones:
 
@@ -194,14 +188,7 @@ A continuación se muestra un diagrama de clases simplificado con las principale
 | `IMenuRepository` | Interfaz para el repositorio del menú. | Implementada por `MenuRepository`. |
 | `IPedidoRepository` | Interfaz para el repositorio de pedidos. | Implementada por `PedidoRepository`. |
 
-**Relaciones principales**:
-
-- `ProductorConsumidorService` → `ProductorWorker` (1 a N) y `ConsumidorWorker` (1 a N).
-- `LectoresEscritoresService` → `LectorWorker` (1 a N) y `EscritorWorker` (1 a 1).
-- Todos los servicios dependen de `ISimulationLogger` y de los repositorios a través de interfaces.
-- Los workers dependen de primitivas de sincronización (`SemaphoreSlim`, `ReaderWriterLockSlim`, etc.) y de `IAttackService` para aplicar ataques.
-
-Este diseño permite **extender el sistema** agregando nuevas simulaciones (ej. *Filósofos comensales*) sin modificar el código existente, cumpliendo con el principio **Open/Closed** de SOLID.
+---
 
 ## Simulaciones
 
