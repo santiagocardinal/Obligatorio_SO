@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\santi\\Obligatorio_SO\\RestauranteSO\\RestauranteSO.csproj": {}
+    "C:\\Users\\santi\\obli\\RestauranteSo\\RestauranteSO.csproj": {}
   },
   "projects": {
-    "C:\\Users\\santi\\Obligatorio_SO\\RestauranteSO\\RestauranteSO.csproj": {
+    "C:\\Users\\santi\\obli\\RestauranteSo\\RestauranteSO.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\santi\\Obligatorio_SO\\RestauranteSO\\RestauranteSO.csproj",
+        "projectUniqueName": "C:\\Users\\santi\\obli\\RestauranteSo\\RestauranteSO.csproj",
         "projectName": "RestauranteSO",
-        "projectPath": "C:\\Users\\santi\\Obligatorio_SO\\RestauranteSO\\RestauranteSO.csproj",
+        "projectPath": "C:\\Users\\santi\\obli\\RestauranteSo\\RestauranteSO.csproj",
         "packagesPath": "C:\\Users\\santi\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\santi\\Obligatorio_SO\\RestauranteSO\\obj\\",
+        "outputPath": "C:\\Users\\santi\\obli\\RestauranteSo\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\santi\\AppData\\Roaming\\NuGet\\NuGet.Config"

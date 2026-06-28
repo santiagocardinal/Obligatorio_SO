@@ -12,54 +12,40 @@ namespace RestauranteSO.Presentation.Forms
 {
     public sealed class FrmProductorConsumidor : Form
     {
-        // ─── SERVICIOS ────────────────────────────────────────────────────────
-
-        private readonly ProductorConsumidorService      _service;
+        private readonly ProductorConsumidorService       _service;
         private readonly AtaqueProductorConsumidorService _attackService;
-        private readonly ISimulationLogger               _logger;
+        private readonly ISimulationLogger                _logger;
 
-        // ─── CONTROLES ────────────────────────────────────────────────────────
-
-        // Header
         private Panel       _panelHeader  = null!;
         private Label       _lblTitulo    = null!;
         private StatusBadge _badgeEstado  = null!;
         private Button      _btnVolver    = null!;
 
-        // Toolbar
-        private Panel  _panelToolbar       = null!;
-        private Button _btnIniciar         = null!;
-        private Button _btnPausar          = null!;
-        private Button _btnDetener         = null!;
-        private Button _btnAgregarCliente  = null!;
-        private Button _btnAgregarCocinero = null!;
-        private Button _btnVaciarCola      = null!;
-        private Button _btnActivarAtaque   = null!;
-        private TrackBar _trackVelProd     = null!;
-        private TrackBar _trackVelCons     = null!;
-        private Label  _lblVelProd         = null!;
-        private Label  _lblVelCons         = null!;
+        private Panel    _panelToolbar       = null!;
+        private Button   _btnIniciar         = null!;
+        private Button   _btnPausar          = null!;
+        private Button   _btnDetener         = null!;
+        private Button   _btnAgregarCliente  = null!;
+        private Button   _btnAgregarCocinero = null!;
+        private Button   _btnVaciarCola      = null!;
+        private Button   _btnActivarAtaque   = null!;
+        private TrackBar _trackVelProd       = null!;
+        private TrackBar _trackVelCons       = null!;
+        private Label    _lblVelProd         = null!;
+        private Label    _lblVelCons         = null!;
 
-        // Cuerpo: SplitContainer principal
-        private SplitContainer _splitPrincipal = null!;
+        private DataGridView    _gridEsperando  = null!;
+        private DataGridView    _gridPreparando = null!;
+        private DataGridView    _gridListos     = null!;
+        private DataGridView    _gridEntregados = null!;
 
-        // Panel izquierdo: kanban
-        private Panel         _panelKanban    = null!;
-        private DataGridView  _gridEsperando  = null!;
-        private DataGridView  _gridPreparando = null!;
-        private DataGridView  _gridListos     = null!;
-        private DataGridView  _gridEntregados = null!;
+        private SemaphoreVisualizer _vizSemEspacios  = null!;
+        private SemaphoreVisualizer _vizSemItems     = null!;
+        private SemaphoreVisualizer _vizCola         = null!;
+        private FlowLayoutPanel     _flowProductores = null!;
+        private FlowLayoutPanel     _flowConsumidores= null!;
+        private LogViewer           _logViewer       = null!;
 
-        // Panel derecho: split vertical
-        private SplitContainer    _splitDerecho      = null!;
-        private SemaphoreVisualizer _vizSemEspacios   = null!;
-        private SemaphoreVisualizer _vizSemItems      = null!;
-        private SemaphoreVisualizer _vizCola          = null!;
-        private FlowLayoutPanel   _flowProductores   = null!;
-        private FlowLayoutPanel   _flowConsumidores  = null!;
-        private LogViewer         _logViewer         = null!;
-
-        // Stats bar
         private Panel _panelStats        = null!;
         private Label _lblStatGen        = null!;
         private Label _lblStatComp       = null!;
@@ -67,20 +53,16 @@ namespace RestauranteSO.Presentation.Forms
         private Label _lblStatThroughput = null!;
         private Label _lblStatTiempo     = null!;
 
-        // Ataque
         private Panel  _panelAtaque     = null!;
         private Button _btnVerPoliticas = null!;
 
-        // Status
-        private StatusStrip          _status     = null!;
-        private ToolStripStatusLabel _lblStatus  = null!;
-        private ToolStripStatusLabel _lblCola    = null!;
+        private StatusStrip          _status    = null!;
+        private ToolStripStatusLabel _lblStatus = null!;
+        private ToolStripStatusLabel _lblCola   = null!;
 
         private System.Windows.Forms.Timer _timerUI = null!;
 
         public event EventHandler<bool>? SimulacionCambiada;
-
-        // ─── CONSTRUCTOR ─────────────────────────────────────────────────────
 
         public FrmProductorConsumidor(
             ProductorConsumidorService service,
@@ -90,17 +72,13 @@ namespace RestauranteSO.Presentation.Forms
             _service       = service       ?? throw new ArgumentNullException(nameof(service));
             _attackService = attackService ?? throw new ArgumentNullException(nameof(attackService));
             _logger        = logger        ?? throw new ArgumentNullException(nameof(logger));
-
             InitializeComponent();
             ConfigurarEventos();
         }
 
-        // ─── INIT ─────────────────────────────────────────────────────────────
-
         private void InitializeComponent()
         {
             SuspendLayout();
-
             Text          = "🍽 Productor — Consumidor | RestauranteSO";
             WindowState   = FormWindowState.Maximized;
             MinimumSize   = new Size(1200, 750);
@@ -119,11 +97,10 @@ namespace RestauranteSO.Presentation.Forms
             _timerUI = new System.Windows.Forms.Timer
                 { Interval = AppConstants.IntervalActualizacionUIMs };
             _timerUI.Tick += TimerUI_Tick;
-
             ResumeLayout(true);
         }
 
-        // ─── HEADER ───────────────────────────────────────────────────────────
+        // ─── HEADER ──────────────────────────────────────────────────────────
 
         private void ConstruirHeader()
         {
@@ -131,53 +108,77 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Dock      = DockStyle.Top,
                 Height    = 64,
-                BackColor = ColorConstants.FondoSuperior,
-                Padding   = new Padding(16, 0, 16, 0)
+                BackColor = ColorConstants.FondoSuperior
             };
             _panelHeader.Paint += (_, e) =>
             {
                 using var pen = new Pen(ColorConstants.TarjetaProductor, 2);
-                e.Graphics.DrawLine(pen,
-                    0, _panelHeader.Height - 2,
+                e.Graphics.DrawLine(pen, 0, _panelHeader.Height - 2,
                     _panelHeader.Width, _panelHeader.Height - 2);
             };
 
-            // Botón Volver
+            var tbl = new TableLayoutPanel
+            {
+                Dock        = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount    = 1,
+                BackColor   = ColorConstants.FondoSuperior,
+                Padding     = new Padding(8, 0, 8, 0)
+            };
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180f));
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,  100f));
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 190f));
+            tbl.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+
             _btnVolver = new Button
             {
-                Text     = "⬅ Volver al Inicio",
-                Size     = new Size(160, 40),
-                Location = new Point(16, 12)
+                Text   = "⬅ Volver al Inicio",
+                Width  = 160,
+                Height = 40,
+                Location = new Point(8, 12)
             };
             AppTheme.AplicarABotonVolver(_btnVolver);
             _btnVolver.Click += (_, _) => VolverAlDashboard();
 
-            // Título
+            var panelVolver = new Panel
+            {
+                Dock      = DockStyle.Fill,
+                BackColor = ColorConstants.FondoSuperior
+            };
+            panelVolver.Controls.Add(_btnVolver);
+
             _lblTitulo = new Label
             {
                 Text      = "🍽  Simulación Productor — Consumidor",
                 Font      = AppTheme.FuenteTitulo,
                 ForeColor = ColorConstants.TextoPrincipal,
-                AutoSize  = true,
-                Location  = new Point(196, 14)
+                BackColor = ColorConstants.FondoSuperior,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize  = false
             };
 
-            // Badge estado
             _badgeEstado = new StatusBadge
             {
                 Text        = "● Detenida",
                 ColorAcento = ColorConstants.TextoHint,
                 Size        = new Size(160, 32),
-                Anchor      = AnchorStyles.Top | AnchorStyles.Right
+                Location    = new Point(8, 16)
             };
-            _badgeEstado.Location =
-                new Point(_panelHeader.Width - 180, 16);
-            _panelHeader.Resize += (_, _) =>
+            var panelBadge = new Panel
+            {
+                Dock      = DockStyle.Fill,
+                BackColor = ColorConstants.FondoSuperior
+            };
+            panelBadge.Controls.Add(_badgeEstado);
+            panelBadge.Resize += (_, _) =>
                 _badgeEstado.Location =
-                    new Point(_panelHeader.Width - 180, 16);
+                    new Point(panelBadge.Width - 168, 16);
 
-            _panelHeader.Controls.AddRange(new Control[]
-                { _btnVolver, _lblTitulo, _badgeEstado });
+            tbl.Controls.Add(panelVolver, 0, 0);
+            tbl.Controls.Add(_lblTitulo,  1, 0);
+            tbl.Controls.Add(panelBadge,  2, 0);
+            _panelHeader.Controls.Add(tbl);
             Controls.Add(_panelHeader);
         }
 
@@ -189,49 +190,52 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Dock      = DockStyle.Top,
                 Height    = 60,
-                BackColor = ColorConstants.FondoPanel,
-                Padding   = new Padding(12, 8, 12, 8)
+                BackColor = ColorConstants.FondoPanel
             };
             _panelToolbar.Paint += (_, e) =>
             {
                 using var pen = new Pen(ColorConstants.Separador, 1);
-                e.Graphics.DrawLine(pen,
-                    0, _panelToolbar.Height - 1,
+                e.Graphics.DrawLine(pen, 0, _panelToolbar.Height - 1,
                     _panelToolbar.Width, _panelToolbar.Height - 1);
             };
 
-            // Flow para los botones — se adapta al ancho
             var flow = new FlowLayoutPanel
             {
                 Dock          = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents  = false,
-                BackColor     = Color.Transparent,
-                Padding       = new Padding(0)
+                BackColor     = ColorConstants.FondoPanel,
+                Padding       = new Padding(8, 8, 8, 8)
             };
 
-            _btnIniciar = CrearBtn("▶  Iniciar",         140, true,  false);
-            _btnPausar  = CrearBtn("⏸  Pausar",          130, false, false);
-            _btnDetener = CrearBtn("⏹  Detener",         130, false, false);
+            _btnIniciar         = CrearBtn("▶  Iniciar",   140, true,  false);
+            _btnPausar          = CrearBtn("⏸  Pausar",    130, false, false);
+            _btnDetener         = CrearBtn("⏹  Detener",   130, false, false);
 
-            var sep1 = new Panel { Size = new Size(1, 44),
+            var sep1 = new Panel
+            {
+                Size      = new Size(1, 44),
                 BackColor = ColorConstants.Separador,
-                Margin    = new Padding(8, 0, 8, 0) };
+                Margin    = new Padding(8, 0, 8, 0)
+            };
 
             _btnAgregarCliente  = CrearBtn("+ Cliente",    120, false, false);
             _btnAgregarCocinero = CrearBtn("+ Cocinero",   130, false, false);
             _btnVaciarCola      = CrearBtn("🗑 Cola",       110, false, false);
 
-            var sep2 = new Panel { Size = new Size(1, 44),
+            var sep2 = new Panel
+            {
+                Size      = new Size(1, 44),
                 BackColor = ColorConstants.Separador,
-                Margin    = new Padding(8, 0, 8, 0) };
+                Margin    = new Padding(8, 0, 8, 0)
+            };
 
-            // Velocidades con labels
             var lblVelTit = new Label
             {
                 Text      = "Velocidad:",
                 Font      = AppTheme.FuenteSmallBold,
                 ForeColor = ColorConstants.TextoHint,
+                BackColor = ColorConstants.FondoPanel,
                 AutoSize  = false,
                 Size      = new Size(75, 44),
                 TextAlign = ContentAlignment.MiddleRight,
@@ -243,6 +247,7 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = "Prod 5x",
                 Font      = AppTheme.FuenteSmall,
                 ForeColor = ColorConstants.TarjetaProductor,
+                BackColor = ColorConstants.FondoPanel,
                 AutoSize  = false,
                 Size      = new Size(52, 22),
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -262,6 +267,7 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = "Coc 5x",
                 Font      = AppTheme.FuenteSmall,
                 ForeColor = ColorConstants.AcentoSecundario,
+                BackColor = ColorConstants.FondoPanel,
                 AutoSize  = false,
                 Size      = new Size(52, 22),
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -276,21 +282,19 @@ namespace RestauranteSO.Presentation.Forms
                 Margin    = new Padding(0)
             };
 
-            // Panel de velocidades con layout vertical interno
             var panelVel = new Panel
             {
                 Size      = new Size(280, 44),
-                BackColor = Color.Transparent,
+                BackColor = ColorConstants.FondoPanel,
                 Margin    = new Padding(0)
             };
-            _lblVelProd.Location   = new Point(0,   2);
-            _trackVelProd.Location = new Point(56,  0);
+            _lblVelProd.Location   = new Point(0,  2);
+            _trackVelProd.Location = new Point(56, 0);
             _lblVelCons.Location   = new Point(0,  24);
             _trackVelCons.Location = new Point(56, 22);
             panelVel.Controls.AddRange(new Control[]
                 { _lblVelProd, _trackVelProd, _lblVelCons, _trackVelCons });
 
-            // Botón ataque (al final)
             _btnActivarAtaque = new Button
             {
                 Text      = "⚡ Activar Ataque",
@@ -309,8 +313,7 @@ namespace RestauranteSO.Presentation.Forms
                 _btnIniciar, _btnPausar, _btnDetener,
                 sep1,
                 _btnAgregarCliente, _btnAgregarCocinero, _btnVaciarCola,
-                sep2, lblVelTit, panelVel,
-                _btnActivarAtaque
+                sep2, lblVelTit, panelVel, _btnActivarAtaque
             });
 
             _panelToolbar.Controls.Add(flow);
@@ -325,8 +328,7 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Dock      = DockStyle.Top,
                 Height    = 52,
-                BackColor = Color.FromArgb(22, 22, 34),
-                Padding   = new Padding(16, 0, 16, 0)
+                BackColor = Color.FromArgb(22, 22, 34)
             };
 
             var flow = new FlowLayoutPanel
@@ -334,15 +336,15 @@ namespace RestauranteSO.Presentation.Forms
                 Dock          = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents  = false,
-                BackColor     = Color.Transparent,
-                Padding       = new Padding(0)
+                BackColor     = Color.FromArgb(22, 22, 34),
+                Padding       = new Padding(8, 0, 8, 0)
             };
 
-            _lblStatGen        = CrearLabelStat("📥 Generados: 0",      ColorConstants.TarjetaProductor);
-            _lblStatComp       = CrearLabelStat("✅ Completados: 0",     ColorConstants.AcentoExito);
-            _lblStatAlt        = CrearLabelStat("⚡ Alterados: 0",       ColorConstants.AlertaAtaque);
-            _lblStatThroughput = CrearLabelStat("📊 Throughput: 0.0/s",  ColorConstants.AcentoPrincipal);
-            _lblStatTiempo     = CrearLabelStat("⏱ Tiempo: 00:00",      ColorConstants.TextoSecundario);
+            _lblStatGen        = CrearLabelStat("📥 Generados: 0",     ColorConstants.TarjetaProductor);
+            _lblStatComp       = CrearLabelStat("✅ Completados: 0",    ColorConstants.AcentoExito);
+            _lblStatAlt        = CrearLabelStat("⚡ Alterados: 0",      ColorConstants.AlertaAtaque);
+            _lblStatThroughput = CrearLabelStat("📊 Throughput: 0.0/s", ColorConstants.AcentoPrincipal);
+            _lblStatTiempo     = CrearLabelStat("⏱ Tiempo: 00:00",     ColorConstants.TextoSecundario);
 
             flow.Controls.AddRange(new Control[]
             {
@@ -362,14 +364,12 @@ namespace RestauranteSO.Presentation.Forms
                 Dock      = DockStyle.Bottom,
                 Height    = 64,
                 BackColor = ColorConstants.FondoAtaque,
-                Visible   = false,
-                Padding   = new Padding(16, 0, 16, 0)
+                Visible   = false
             };
             _panelAtaque.Paint += (_, e) =>
             {
                 using var pen = new Pen(ColorConstants.AlertaAtaque, 2);
-                e.Graphics.DrawLine(pen, 0, 0,
-                    _panelAtaque.Width, 0);
+                e.Graphics.DrawLine(pen, 0, 0, _panelAtaque.Width, 0);
             };
 
             var tbl = new TableLayoutPanel
@@ -377,14 +377,16 @@ namespace RestauranteSO.Presentation.Forms
                 Dock        = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount    = 1,
-                BackColor   = Color.Transparent
+                BackColor   = ColorConstants.FondoAtaque,
+                Padding     = new Padding(12, 0, 12, 0)
             };
             tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75f));
             tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
 
             var panelTexto = new Panel
             {
-                Dock = DockStyle.Fill, BackColor = Color.Transparent
+                Dock      = DockStyle.Fill,
+                BackColor = ColorConstants.FondoAtaque
             };
 
             var lblTit = new Label
@@ -392,16 +394,17 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = "⚡ ATAQUE ACTIVO: Inyección de Pedidos en cola",
                 Font      = AppTheme.FuenteLabelBold,
                 ForeColor = ColorConstants.AlertaAtaque,
+                BackColor = ColorConstants.FondoAtaque,
                 AutoSize  = true,
                 Location  = new Point(0, 8)
             };
             var lblDesc = new Label
             {
-                Text =
-                    "Un falso técnico instaló un agente malicioso. " +
-                    "Pedidos duplicados, eliminados y alterados en tiempo real.",
+                Text      = "Un falso técnico instaló un agente malicioso. " +
+                             "Pedidos duplicados, eliminados y alterados.",
                 Font      = AppTheme.FuenteSmall,
                 ForeColor = ColorConstants.TextoSecundario,
+                BackColor = ColorConstants.FondoAtaque,
                 AutoSize  = true,
                 Location  = new Point(0, 32)
             };
@@ -409,16 +412,15 @@ namespace RestauranteSO.Presentation.Forms
 
             _btnVerPoliticas = new Button
             {
-                Text  = "🛡 Ver Políticas de Prevención",
-                Dock  = DockStyle.Right,
-                Width = 240,
-                Font  = AppTheme.FuenteBoton
+                Text   = "🛡 Ver Políticas de Prevención",
+                Dock   = DockStyle.Fill,
+                Font   = AppTheme.FuenteBoton,
+                Margin = new Padding(8, 10, 0, 10)
             };
             AppTheme.AplicarABotonSeguridad(_btnVerPoliticas);
-            _btnVerPoliticas.Margin = new Padding(8, 10, 0, 10);
             _btnVerPoliticas.Click += (_, _) => AbrirPoliticas();
 
-            tbl.Controls.Add(panelTexto, 0, 0);
+            tbl.Controls.Add(panelTexto,       0, 0);
             tbl.Controls.Add(_btnVerPoliticas, 1, 0);
             _panelAtaque.Controls.Add(tbl);
             Controls.Add(_panelAtaque);
@@ -433,10 +435,10 @@ namespace RestauranteSO.Presentation.Forms
 
             _lblStatus = new ToolStripStatusLabel
             {
-                Text   = "Listo — presione Iniciar",
-                Spring = true,
+                Text      = "Listo — presione Iniciar",
+                Spring    = true,
                 ForeColor = ColorConstants.TextoSecundario,
-                Font   = AppTheme.FuenteSmall
+                Font      = AppTheme.FuenteSmall
             };
             _lblCola = new ToolStripStatusLabel
             {
@@ -450,49 +452,83 @@ namespace RestauranteSO.Presentation.Forms
             Controls.Add(_status);
         }
 
-        // ─── CUERPO PRINCIPAL ─────────────────────────────────────────────────
+        // ─── CUERPO ───────────────────────────────────────────────────────────
 
         private void ConstruirCuerpo()
         {
-            _splitPrincipal = new SplitContainer
+            var panelCuerpo = new Panel
             {
-                Dock         = DockStyle.Fill,
-                Orientation  = Orientation.Vertical,
-                SplitterWidth = 4,
-                BackColor    = ColorConstants.Separador,
-                Panel1MinSize = 500,
-                Panel2MinSize = 300
+                Dock      = DockStyle.Fill,
+                BackColor = ColorConstants.FondoPrincipal
             };
-            _splitPrincipal.Panel1.BackColor = ColorConstants.FondoPrincipal;
-            _splitPrincipal.Panel2.BackColor = ColorConstants.FondoLateral;
 
-            ConstruirKanban(_splitPrincipal.Panel1);
-            ConstruirPanelDerecho(_splitPrincipal.Panel2);
-
-            Controls.Add(_splitPrincipal);
-
-            // Posición inicial del splitter
-            Load += (_, _) =>
+            var panelIzq = new Panel
             {
-                _splitPrincipal.SplitterDistance =
-                    (int)(_splitPrincipal.Width * 0.62);
+                Dock       = DockStyle.Left,
+                BackColor  = ColorConstants.FondoPrincipal,
+                Padding    = new Padding(8)
+            };
+
+            var panelDerSup = new Panel
+            {
+                Dock       = DockStyle.Left,
+                BackColor  = ColorConstants.FondoLateral,
+                Padding    = new Padding(8),
+                AutoScroll = true
+            };
+
+            var panelDerInf = new Panel
+            {
+                Dock      = DockStyle.Fill,
+                BackColor = ColorConstants.FondoLateral
+            };
+
+            void redistribuir()
+            {
+                if (panelCuerpo.Width < 100) return;
+                panelIzq.Width    = (int)(panelCuerpo.Width * 0.60);
+                panelDerSup.Width = (int)(panelCuerpo.Width * 0.20);
+            }
+            panelCuerpo.Resize += (_, _) => redistribuir();
+            Shown             += (_, _) => redistribuir();
+            Resize            += (_, _) => redistribuir();
+
+
+            ConstruirKanban(panelIzq);
+            ConstruirPanelSemaforos(panelDerSup);
+
+            _logViewer = new LogViewer { Dock = DockStyle.Fill };
+            _logViewer.SetTitulo("📋 Log de Concurrencia");
+            panelDerInf.Controls.Add(_logViewer);
+
+            panelCuerpo.Controls.Add(panelDerInf);
+            panelCuerpo.Controls.Add(panelDerSup);
+            panelCuerpo.Controls.Add(panelIzq);
+            Controls.Add(panelCuerpo);
+            Shown += (_, _) =>
+            {
+                if (panelCuerpo.Width > 100)
+                {
+                    panelIzq.Width    = (int)(panelCuerpo.Width * 0.60);
+                    panelDerSup.Width = (int)(panelCuerpo.Width * 0.20);
+                }
             };
         }
 
-        private void ConstruirKanban(SplitterPanel panel)
+        // ── firma Panel (no SplitterPanel) ───────────────────────────────────
+
+        private void ConstruirKanban(Panel panel)
         {
-            // Las 4 columnas en TableLayout 1x4
             var tbl = new TableLayoutPanel
             {
                 Dock        = DockStyle.Fill,
                 ColumnCount = 4,
                 RowCount    = 1,
-                BackColor   = Color.Transparent,
+                BackColor   = ColorConstants.FondoPrincipal,
                 Padding     = new Padding(8)
             };
             for (int i = 0; i < 4; i++)
-                tbl.ColumnStyles.Add(
-                    new ColumnStyle(SizeType.Percent, 25f));
+                tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
             tbl.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
             _gridEsperando  = CrearGridKanban();
@@ -500,18 +536,14 @@ namespace RestauranteSO.Presentation.Forms
             _gridListos     = CrearGridKanban();
             _gridEntregados = CrearGridKanban();
 
-            tbl.Controls.Add(
-                CrearColumnaKanban("⏳ Esperando",
-                    ColorConstants.EstadoEsperando, _gridEsperando), 0, 0);
-            tbl.Controls.Add(
-                CrearColumnaKanban("🔵 Preparando",
-                    ColorConstants.EstadoEnPreparacion, _gridPreparando), 1, 0);
-            tbl.Controls.Add(
-                CrearColumnaKanban("✅ Listos",
-                    ColorConstants.EstadoListo, _gridListos), 2, 0);
-            tbl.Controls.Add(
-                CrearColumnaKanban("📦 Entregados",
-                    ColorConstants.EstadoEntregado, _gridEntregados), 3, 0);
+            tbl.Controls.Add(CrearColumnaKanban("⏳ Esperando",
+                ColorConstants.EstadoEsperando,     _gridEsperando),  0, 0);
+            tbl.Controls.Add(CrearColumnaKanban("🔵 Preparando",
+                ColorConstants.EstadoEnPreparacion, _gridPreparando), 1, 0);
+            tbl.Controls.Add(CrearColumnaKanban("✅ Listos",
+                ColorConstants.EstadoListo,         _gridListos),     2, 0);
+            tbl.Controls.Add(CrearColumnaKanban("📦 Entregados",
+                ColorConstants.EstadoEntregado,     _gridEntregados), 3, 0);
 
             panel.Controls.Add(tbl);
         }
@@ -523,8 +555,7 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Dock      = DockStyle.Fill,
                 BackColor = ColorConstants.FondoCard,
-                Margin    = new Padding(4),
-                Padding   = new Padding(0)
+                Margin    = new Padding(4)
             };
             panel.Paint += (_, e) =>
             {
@@ -542,8 +573,7 @@ namespace RestauranteSO.Presentation.Forms
             header.Paint += (_, e) =>
             {
                 using var pen = new Pen(color, 2);
-                e.Graphics.DrawLine(pen,
-                    0, header.Height - 2,
+                e.Graphics.DrawLine(pen, 0, header.Height - 2,
                     header.Width, header.Height - 2);
             };
 
@@ -552,6 +582,7 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = titulo,
                 Font      = AppTheme.FuenteLabelBold,
                 ForeColor = color,
+                BackColor = Color.FromArgb(40, color.R, color.G, color.B),
                 Dock      = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter
             };
@@ -568,48 +599,19 @@ namespace RestauranteSO.Presentation.Forms
             var grid = new DataGridView();
             AppTheme.AplicarADataGrid(grid);
             grid.Columns.Add(new DataGridViewTextBoxColumn
-                { Name = "Num",  HeaderText = "#",      Width = 42, FillWeight = 12 });
+                { Name = "Num",  HeaderText = "#",       Width = 42, FillWeight = 12 });
             grid.Columns.Add(new DataGridViewTextBoxColumn
-                { Name = "Desc", HeaderText = "Plato",  FillWeight = 55 });
+                { Name = "Desc", HeaderText = "Plato",   FillWeight = 55 });
             grid.Columns.Add(new DataGridViewTextBoxColumn
-                { Name = "Mesa", HeaderText = "Mesa",   Width = 44, FillWeight = 13 });
+                { Name = "Mesa", HeaderText = "Mesa",    Width = 44, FillWeight = 13 });
             grid.Columns.Add(new DataGridViewTextBoxColumn
-                { Name = "Cli",  HeaderText = "Cliente",FillWeight = 20 });
+                { Name = "Cli",  HeaderText = "Cliente", FillWeight = 20 });
             return grid;
         }
 
-        private void ConstruirPanelDerecho(SplitterPanel panel)
-        {
-            _splitDerecho = new SplitContainer
-            {
-                Dock          = DockStyle.Fill,
-                Orientation   = Orientation.Horizontal,
-                SplitterWidth = 4,
-                BackColor     = ColorConstants.Separador,
-                Panel1MinSize = 200,
-                Panel2MinSize = 150
-            };
-            _splitDerecho.Panel1.BackColor = ColorConstants.FondoLateral;
-            _splitDerecho.Panel2.BackColor = ColorConstants.FondoLateral;
+        // ── firma Panel (no SplitterPanel) ───────────────────────────────────
 
-            // Panel superior derecho: semáforos + hilos
-            ConstruirPanelSemaforos(_splitDerecho.Panel1);
-
-            // Panel inferior derecho: log
-            _logViewer = new LogViewer { Dock = DockStyle.Fill };
-            _logViewer.SetTitulo("📋 Log de Concurrencia");
-            _splitDerecho.Panel2.Controls.Add(_logViewer);
-
-            panel.Controls.Add(_splitDerecho);
-
-            Load += (_, _) =>
-            {
-                _splitDerecho.SplitterDistance =
-                    (int)(_splitDerecho.Height * 0.55);
-            };
-        }
-
-        private void ConstruirPanelSemaforos(SplitterPanel panel)
+        private void ConstruirPanelSemaforos(Panel panel)
         {
             var scroll = new Panel
             {
@@ -619,12 +621,12 @@ namespace RestauranteSO.Presentation.Forms
                 Padding    = new Padding(8)
             };
 
-            // Título semáforos
             var lblSem = new Label
             {
                 Text      = "🔒 Primitivas de Sincronización",
                 Font      = AppTheme.FuenteLabelBold,
                 ForeColor = ColorConstants.TarjetaProductor,
+                BackColor = ColorConstants.FondoLateral,
                 Dock      = DockStyle.Top,
                 Height    = 28,
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -639,20 +641,11 @@ namespace RestauranteSO.Presentation.Forms
             };
 
             _vizSemEspacios = new SemaphoreVisualizer
-            {
-                Location = new Point(4,   4),
-                Height   = 68
-            };
+                { Location = new Point(4,   4), Height = 68 };
             _vizSemItems = new SemaphoreVisualizer
-            {
-                Location = new Point(4,  76),
-                Height   = 68
-            };
+                { Location = new Point(4,  76), Height = 68 };
             _vizCola = new SemaphoreVisualizer
-            {
-                Location = new Point(4, 148),
-                Height   = 68
-            };
+                { Location = new Point(4, 148), Height = 68 };
 
             panelViz.Resize += (_, _) =>
             {
@@ -665,21 +658,18 @@ namespace RestauranteSO.Presentation.Forms
             panelViz.Controls.AddRange(new Control[]
                 { _vizSemEspacios, _vizSemItems, _vizCola });
 
-            _vizSemEspacios.ActualizarSemaforo(
-                "Sem: Espacios Libres",
-                AppConstants.CapacidadMaximaCola,
-                AppConstants.CapacidadMaximaCola);
-            _vizSemItems.ActualizarSemaforo(
-                "Sem: Items Disponibles",
+            _vizSemEspacios.ActualizarSemaforo("Sem: Espacios Libres",
+                AppConstants.CapacidadMaximaCola, AppConstants.CapacidadMaximaCola);
+            _vizSemItems.ActualizarSemaforo("Sem: Items Disponibles",
                 0, AppConstants.CapacidadMaximaCola);
             _vizCola.ActualizarCola(0, AppConstants.CapacidadMaximaCola);
 
-            // Hilos productores
             var lblProd = new Label
             {
                 Text      = "👥 Clientes (Productores)",
                 Font      = AppTheme.FuenteLabelBold,
                 ForeColor = ColorConstants.TarjetaProductor,
+                BackColor = ColorConstants.FondoLateral,
                 Dock      = DockStyle.Top,
                 Height    = 28,
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -697,12 +687,12 @@ namespace RestauranteSO.Presentation.Forms
                 Padding       = new Padding(4)
             };
 
-            // Hilos consumidores
             var lblCoc = new Label
             {
                 Text      = "👨‍🍳 Cocineros (Consumidores)",
                 Font      = AppTheme.FuenteLabelBold,
                 ForeColor = ColorConstants.AcentoSecundario,
+                BackColor = ColorConstants.FondoLateral,
                 Dock      = DockStyle.Top,
                 Height    = 28,
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -771,14 +761,16 @@ namespace RestauranteSO.Presentation.Forms
             };
 
             _logger.NuevoLogAgregado += (_, entry) =>
-                _logViewer.AgregarLog(entry);
+            {
+                if (!IsDisposed && _logViewer != null)
+                    _logViewer.AgregarLog(entry);
+            };
 
             FormClosing += (_, _) =>
             {
                 _timerUI.Stop();
-                if (_service.EstaCorreindo) _service.Detener();
-                if (_attackService.IsAttackActive)
-                    _attackService.DesactivarAtaque();
+                if (_service.EstaCorreindo)        _service.Detener();
+                if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
             };
         }
 
@@ -787,7 +779,7 @@ namespace RestauranteSO.Presentation.Forms
         private void VolverAlDashboard()
         {
             _timerUI.Stop();
-            if (_service.EstaCorreindo)     _service.Detener();
+            if (_service.EstaCorreindo)        _service.Detener();
             if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
             Close();
         }
@@ -827,8 +819,7 @@ namespace RestauranteSO.Presentation.Forms
         {
             _timerUI.Stop();
             _service.Detener();
-            if (_attackService.IsAttackActive)
-                _attackService.DesactivarAtaque();
+            if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
             ActualizarBotones(SimulationStatus.Detenida);
             SimulacionCambiada?.Invoke(this, false);
             LimpiarGrids();
@@ -843,6 +834,7 @@ namespace RestauranteSO.Presentation.Forms
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
+
             if (_attackService.IsAttackActive)
             {
                 _attackService.DesactivarAtaque();
@@ -893,19 +885,13 @@ namespace RestauranteSO.Presentation.Forms
 
         private void ActualizarStats(SimulationStatistics stats)
         {
-            _lblStatGen.Text        =
-                $"📥 Generados: {stats.TotalPedidosGenerados}";
-            _lblStatComp.Text       =
-                $"✅ Completados: {stats.TotalPedidosCompletados}";
-            _lblStatAlt.Text        =
-                $"⚡ Alterados: {stats.TotalPedidosAlterados}";
-            _lblStatThroughput.Text =
-                $"📊 Throughput: {stats.PedidosPorSegundo:F1}/s";
-            _lblStatTiempo.Text     =
-                $"⏱ Tiempo: {stats.TiempoEjecucion:mm\\:ss}";
-            _lblCola.Text =
-                $"Cola: {stats.PedidosEnCola}/{stats.CapacidadMaximaCola}";
-            _lblStatus.Text =
+            _lblStatGen.Text        = $"📥 Generados: {stats.TotalPedidosGenerados}";
+            _lblStatComp.Text       = $"✅ Completados: {stats.TotalPedidosCompletados}";
+            _lblStatAlt.Text        = $"⚡ Alterados: {stats.TotalPedidosAlterados}";
+            _lblStatThroughput.Text = $"📊 Throughput: {stats.PedidosPorSegundo:F1}/s";
+            _lblStatTiempo.Text     = $"⏱ Tiempo: {stats.TiempoEjecucion:mm\\:ss}";
+            _lblCola.Text           = $"Cola: {stats.PedidosEnCola}/{stats.CapacidadMaximaCola}";
+            _lblStatus.Text         =
                 $"{stats.EstadoActual}  |  " +
                 $"Prod: {stats.ProductoresActivos}  |  " +
                 $"Cons: {stats.ConsumidoresActivos}";
@@ -916,8 +902,8 @@ namespace RestauranteSO.Presentation.Forms
             var pedidos = _service.Cola.ToArray();
 
             RellenarGrid(_gridEsperando, pedidos.Where(p =>
-                p.Estado == PedidoEstado.Esperando ||
-                p.Estado == PedidoEstado.Duplicado ||
+                p.Estado == PedidoEstado.Esperando  ||
+                p.Estado == PedidoEstado.Duplicado  ||
                 p.Estado == PedidoEstado.Alterado).Take(30));
 
             RellenarGrid(_gridPreparando, pedidos.Where(p =>
@@ -952,17 +938,12 @@ namespace RestauranteSO.Presentation.Forms
 
         private void ActualizarViz(SimulationStatistics stats)
         {
-            _vizSemEspacios.ActualizarSemaforo(
-                "Sem: Espacios Libres",
-                _service.EspaciosLibres,
-                AppConstants.CapacidadMaximaCola);
-            _vizSemItems.ActualizarSemaforo(
-                "Sem: Items Disponibles",
-                _service.ItemsDisponibles,
-                AppConstants.CapacidadMaximaCola);
+            _vizSemEspacios.ActualizarSemaforo("Sem: Espacios Libres",
+                _service.EspaciosLibres, AppConstants.CapacidadMaximaCola);
+            _vizSemItems.ActualizarSemaforo("Sem: Items Disponibles",
+                _service.ItemsDisponibles, AppConstants.CapacidadMaximaCola);
             _vizCola.ActualizarCola(
-                stats.PedidosEnCola,
-                AppConstants.CapacidadMaximaCola);
+                stats.PedidosEnCola, AppConstants.CapacidadMaximaCola);
         }
 
         private void ActualizarHilos()
@@ -1022,16 +1003,11 @@ namespace RestauranteSO.Presentation.Forms
             ActualizarBotones(estado);
             (_badgeEstado.Text, _badgeEstado.ColorAcento) = estado switch
             {
-                SimulationStatus.Corriendo  =>
-                    ("▶ Corriendo",      ColorConstants.AcentoExito),
-                SimulationStatus.Pausada    =>
-                    ("⏸ Pausada",        ColorConstants.EstadoEsperando),
-                SimulationStatus.Deteniendo =>
-                    ("⏹ Deteniendo...", ColorConstants.TextoHint),
-                SimulationStatus.BajoAtaque =>
-                    ("⚡ Bajo Ataque",   ColorConstants.AlertaAtaque),
-                _                          =>
-                    ("● Detenida",       ColorConstants.TextoHint)
+                SimulationStatus.Corriendo  => ("▶ Corriendo",     ColorConstants.AcentoExito),
+                SimulationStatus.Pausada    => ("⏸ Pausada",       ColorConstants.EstadoEsperando),
+                SimulationStatus.Deteniendo => ("⏹ Deteniendo...", ColorConstants.TextoHint),
+                SimulationStatus.BajoAtaque => ("⚡ Bajo Ataque",  ColorConstants.AlertaAtaque),
+                _                           => ("● Detenida",      ColorConstants.TextoHint)
             };
         }
 
@@ -1075,8 +1051,7 @@ namespace RestauranteSO.Presentation.Forms
             (int)(3000 / Math.Pow(v, 0.8));
 
         private static Button CrearBtn(
-            string texto, int ancho,
-            bool primario, bool ataque)
+            string texto, int ancho, bool primario, bool ataque)
         {
             var btn = new Button
             {
@@ -1098,6 +1073,7 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = texto,
                 Font      = AppTheme.FuenteLabelBold,
                 ForeColor = color,
+                BackColor = Color.FromArgb(22, 22, 34),
                 AutoSize  = false,
                 Height    = 52,
                 Width     = 200,

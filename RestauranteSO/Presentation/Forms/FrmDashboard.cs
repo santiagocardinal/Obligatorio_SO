@@ -1,9 +1,7 @@
 using System.Drawing.Drawing2D;
-using System.Drawing.Text;
 using RestauranteSO.Configuration;
 using RestauranteSO.Constants;
 using RestauranteSO.Domain.Interfaces;
-using RestauranteSO.Presentation.Components;
 using RestauranteSO.Presentation.Controls;
 using RestauranteSO.Presentation.Themes;
 using RestauranteSO.Services.Ataques;
@@ -16,46 +14,33 @@ namespace RestauranteSO.Presentation.Forms
     {
         // ─── CONTROLES ────────────────────────────────────────────────────────
 
-        private Panel           _panelHeader  = null!;
-        private Panel           _panelCentral = null!;
-        private Panel           _panelFooter  = null!;
-        private TableLayoutPanel _tableCards  = null!;
+        private Panel            _panelHeader  = null!;
+        private Panel            _panelCentral = null!;
+        private TableLayoutPanel _tableCards   = null!;
 
         private SimulationCard _card1 = null!;
         private SimulationCard _card2 = null!;
         private SimulationCard _card3 = null!;
         private SimulationCard _card4 = null!;
 
-        // Header labels
-        private Label _lblLogo         = null!;
-        private Label _lblNombre        = null!;
-        private Label _lblSubtitulo     = null!;
-        private Label _lblMateria       = null!;
-        private Label _lblIntegrantes   = null!;
-        private Label _lblFecha         = null!;
         private Label _lblHora          = null!;
-        private Label _lblEstadoSistema = null!;
+        private Label _lblFecha         = null!;
 
-        // Footer
-        private StatusStrip             _footer       = null!;
-        private ToolStripStatusLabel    _footerEstado = null!;
-        private ToolStripStatusLabel    _footerHilos  = null!;
-        private ToolStripStatusLabel    _footerHora   = null!;
-        private ToolStripStatusLabel    _footerVersion = null!;
-        private ToolStripStatusLabel    _footerAutor  = null!;
+        private StatusStrip          _footer        = null!;
+        private ToolStripStatusLabel _footerHilos   = null!;
+        private ToolStripStatusLabel _footerVersion = null!;
+        private ToolStripStatusLabel _footerAutor   = null!;
+        private ToolStripStatusLabel _footerHora    = null!;
 
-        // Timers
-        private System.Windows.Forms.Timer _timerReloj  = null!;
-        private System.Windows.Forms.Timer _timerStats  = null!;
+        private System.Windows.Forms.Timer _timerReloj = null!;
+        private System.Windows.Forms.Timer _timerStats = null!;
 
-        // Servicios
         private readonly ISimulationLogger _logger;
 
-        // Ventanas hijas
-        private FrmProductorConsumidor?       _frmPC  = null;
-        private FrmLectoresEscritores?         _frmLE  = null;
-        private FrmAtaqueProductorConsumidor?  _frmAPC = null;
-        private FrmAtaqueLectoresEscritores?   _frmALE = null;
+        private FrmProductorConsumidor?      _frmPC  = null;
+        private FrmLectoresEscritores?        _frmLE  = null;
+        private FrmAtaqueProductorConsumidor? _frmAPC = null;
+        private FrmAtaqueLectoresEscritores?  _frmALE = null;
 
         // ─── CONSTRUCTOR ─────────────────────────────────────────────────────
 
@@ -72,13 +57,13 @@ namespace RestauranteSO.Presentation.Forms
         {
             SuspendLayout();
 
-            Text             = $"{AppConstants.NombreRestaurante} — Simulador SO";
-            MinimumSize      = new Size(1400, 900);
-            StartPosition    = FormStartPosition.CenterScreen;
-            BackColor        = ColorConstants.FondoPrincipal;
-            ForeColor        = ColorConstants.TextoPrincipal;
-            Font             = AppTheme.FuenteLabel;
-            WindowState      = FormWindowState.Maximized;
+            Text          = $"{AppConstants.NombreRestaurante} — Simulador SO";
+            MinimumSize   = new Size(1400, 860);
+            WindowState   = FormWindowState.Maximized;
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor     = ColorConstants.FondoPrincipal;
+            ForeColor     = ColorConstants.TextoPrincipal;
+            Font          = AppTheme.FuenteLabel;
 
             ConstruirHeader();
             ConstruirCentral();
@@ -104,106 +89,147 @@ namespace RestauranteSO.Presentation.Forms
             _panelHeader = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 140,
-                BackColor = ColorConstants.FondoSuperior,
-                Padding   = new Padding(32, 0, 32, 0)
+                Height    = 130,
+                BackColor = ColorConstants.FondoSuperior
             };
 
-            // Línea inferior de acento
             _panelHeader.Paint += (_, e) =>
             {
-                var g = e.Graphics;
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-
-                // Gradiente de línea inferior
-                var lineRect = new Rectangle(
-                    0, _panelHeader.Height - 3,
-                    _panelHeader.Width, 3);
+                int y = _panelHeader.Height - 3;
+                if (_panelHeader.Width <= 0) return;
                 using var lgb = new LinearGradientBrush(
-                    lineRect,
+                    new Rectangle(0, y, _panelHeader.Width, 3),
                     ColorConstants.AcentoPrincipal,
                     ColorConstants.TarjetaLectores,
                     LinearGradientMode.Horizontal);
-                e.Graphics.FillRectangle(lgb, lineRect);
+                e.Graphics.FillRectangle(lgb, 0, y, _panelHeader.Width, 3);
             };
 
-            // TableLayout para el header: izquierda (logo+nombre) | derecha (info)
-            var tbl = new TableLayoutPanel
+            // TableLayout principal del header: 2 columnas
+            var headerLayout = new TableLayoutPanel
             {
                 Dock        = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount    = 1,
-                BackColor   = Color.Transparent
+                BackColor   = ColorConstants.FondoSuperior,
+                Padding     = new Padding(24, 0, 24, 0)
             };
-            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60f));
-            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40f));
+            headerLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 58f));
+            headerLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 42f));
+            headerLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100f));
 
-            // ── Lado izquierdo: Logo + Nombre ─────────────────────────────
-            var panelIzq = new Panel
+            // ── IZQUIERDA ─────────────────────────────────────────────────
+            var izqLayout = new TableLayoutPanel
             {
-                Dock      = DockStyle.Fill,
-                BackColor = Color.Transparent,
-                Padding   = new Padding(0, 20, 0, 12)
+                Dock        = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount    = 1,
+                BackColor   = ColorConstants.FondoSuperior,
+                Padding     = new Padding(0, 16, 0, 12)
             };
+            izqLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 88f));
+            izqLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100f));
+            izqLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100f));
 
-            _lblLogo = new Label
+            var lblLogo = new Label
             {
                 Text      = "🍽",
-                Font      = new Font("Segoe UI Emoji", 44f),
+                Font      = new Font("Segoe UI Emoji", 48f),
                 ForeColor = ColorConstants.AcentoSecundario,
-                AutoSize  = false,
-                Size      = new Size(80, 80),
-                Location  = new Point(0, 16),
-                TextAlign = ContentAlignment.MiddleCenter
+                BackColor = ColorConstants.FondoSuperior,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize  = false
             };
 
-            _lblNombre = new Label
+            var textosLayout = new TableLayoutPanel
+            {
+                Dock        = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount    = 3,
+                BackColor   = ColorConstants.FondoSuperior,
+                Padding     = new Padding(8, 0, 0, 0)
+            };
+            textosLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100f));
+            textosLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 50f));
+            textosLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 30f));
+            textosLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 20f));
+
+            var lblNombre = new Label
             {
                 Text      = AppConstants.NombreRestaurante,
-                Font      = AppTheme.FuenteHero,
+                Font      = new Font("Segoe UI", 30f, FontStyle.Bold),
                 ForeColor = ColorConstants.TextoPrincipal,
-                AutoSize  = true,
-                Location  = new Point(90, 18)
+                BackColor = ColorConstants.FondoSuperior,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.BottomLeft,
+                AutoSize  = false
             };
 
-            _lblSubtitulo = new Label
+            var lblSubtitulo = new Label
             {
                 Text      = AppConstants.Subtitulo,
-                Font      = AppTheme.FuenteSubtitulo,
+                Font      = new Font("Segoe UI", 14f),
                 ForeColor = ColorConstants.AcentoPrincipal,
-                AutoSize  = true,
-                Location  = new Point(92, 78)
+                BackColor = ColorConstants.FondoSuperior,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize  = false
             };
 
-            _lblMateria = new Label
+            var lblMateria = new Label
             {
                 Text      = "Sistemas Operativos — Universidad",
                 Font      = AppTheme.FuenteSmall,
                 ForeColor = ColorConstants.TextoHint,
-                AutoSize  = true,
-                Location  = new Point(94, 108)
-            };
-
-            panelIzq.Controls.AddRange(new Control[]
-            {
-                _lblLogo, _lblNombre, _lblSubtitulo, _lblMateria
-            });
-
-            // ── Lado derecho: Info del sistema ────────────────────────────
-            var panelDer = new Panel
-            {
+                BackColor = ColorConstants.FondoSuperior,
                 Dock      = DockStyle.Fill,
-                BackColor = Color.Transparent,
-                Padding   = new Padding(16, 20, 0, 12)
+                TextAlign = ContentAlignment.TopLeft,
+                AutoSize  = false
             };
 
-            _lblIntegrantes = new Label
+            textosLayout.Controls.Add(lblNombre,    0, 0);
+            textosLayout.Controls.Add(lblSubtitulo, 0, 1);
+            textosLayout.Controls.Add(lblMateria,   0, 2);
+
+            izqLayout.Controls.Add(lblLogo,      0, 0);
+            izqLayout.Controls.Add(textosLayout, 1, 0);
+
+            // ── DERECHA ───────────────────────────────────────────────────
+            var derLayout = new TableLayoutPanel
             {
-                Text      = "👥 Integrantes: Lucía Rodriguez y Santiago Cardinal",
+                Dock        = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount    = 4,
+                BackColor   = ColorConstants.FondoSuperior,
+                Padding     = new Padding(24, 16, 0, 12)
+            };
+            derLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100f));
+            derLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25f));
+            derLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25f));
+            derLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 30f));
+            derLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 20f));
+
+            var lblIntegrantes = new Label
+            {
+                Text      = "👥 Integrantes: Equipo RestauranteSO",
                 Font      = AppTheme.FuenteLabel,
                 ForeColor = ColorConstants.TextoSecundario,
-                AutoSize  = true,
-                Location  = new Point(16, 20)
+                BackColor = ColorConstants.FondoSuperior,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.BottomLeft,
+                AutoSize  = false
             };
 
             _lblFecha = new Label
@@ -213,37 +239,42 @@ namespace RestauranteSO.Presentation.Forms
                     new System.Globalization.CultureInfo("es-ES")),
                 Font      = AppTheme.FuenteLabel,
                 ForeColor = ColorConstants.TextoSecundario,
-                AutoSize  = true,
-                Location  = new Point(16, 48)
+                BackColor = ColorConstants.FondoSuperior,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize  = false
             };
 
             _lblHora = new Label
             {
                 Text      = DateTime.Now.ToString("HH:mm:ss"),
-                Font      = new Font("Consolas", 22f, FontStyle.Bold),
+                Font      = new Font("Consolas", 24f, FontStyle.Bold),
                 ForeColor = ColorConstants.AcentoPrincipal,
-                AutoSize  = true,
-                Location  = new Point(16, 72)
+                BackColor = ColorConstants.FondoSuperior,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize  = false
             };
 
-            _lblEstadoSistema = new Label
+            var lblEstadoSistema = new Label
             {
                 Text      = "✅ Sistema operativo — Listo",
                 Font      = AppTheme.FuenteSmallBold,
                 ForeColor = ColorConstants.AcentoExito,
-                AutoSize  = true,
-                Location  = new Point(16, 112)
+                BackColor = ColorConstants.FondoSuperior,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.TopLeft,
+                AutoSize  = false
             };
 
-            panelDer.Controls.AddRange(new Control[]
-            {
-                _lblIntegrantes, _lblFecha,
-                _lblHora, _lblEstadoSistema
-            });
+            derLayout.Controls.Add(lblIntegrantes,  0, 0);
+            derLayout.Controls.Add(_lblFecha,       0, 1);
+            derLayout.Controls.Add(_lblHora,        0, 2);
+            derLayout.Controls.Add(lblEstadoSistema,0, 3);
 
-            tbl.Controls.Add(panelIzq, 0, 0);
-            tbl.Controls.Add(panelDer, 1, 0);
-            _panelHeader.Controls.Add(tbl);
+            headerLayout.Controls.Add(izqLayout,  0, 0);
+            headerLayout.Controls.Add(derLayout,  1, 0);
+            _panelHeader.Controls.Add(headerLayout);
             Controls.Add(_panelHeader);
         }
 
@@ -255,57 +286,73 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Dock      = DockStyle.Fill,
                 BackColor = ColorConstants.FondoPrincipal,
-                Padding   = new Padding(48, 32, 48, 24)
+                Padding   = new Padding(40, 24, 40, 16)
             };
 
-            // Título de sección
+            // Encabezado de sección
+            var seccionLayout = new TableLayoutPanel
+            {
+                Dock        = DockStyle.Top,
+                ColumnCount = 1,
+                RowCount    = 2,
+                BackColor   = ColorConstants.FondoPrincipal,
+                Height      = 72
+            };
+            seccionLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100f));
+            seccionLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 55f));
+            seccionLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 45f));
+
             var lblSeccion = new Label
             {
                 Text      = "Módulos de Simulación",
-                Font      = AppTheme.FuenteTitulo,
+                Font      = new Font("Segoe UI", 20f, FontStyle.Bold),
                 ForeColor = ColorConstants.TextoPrincipal,
-                AutoSize  = true,
-                Dock      = DockStyle.Top,
-                Height    = 40,
-                TextAlign = ContentAlignment.MiddleLeft
+                BackColor = ColorConstants.FondoPrincipal,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.BottomLeft,
+                AutoSize  = false
             };
 
             var lblSeccionSub = new Label
             {
-                Text      = "Seleccione un módulo para iniciar la simulación",
-                Font      = AppTheme.FuenteSubtitulo,
+                Text      = "Seleccione un módulo para iniciar la simulación correspondiente",
+                Font      = new Font("Segoe UI", 12f),
                 ForeColor = ColorConstants.TextoSecundario,
-                AutoSize  = false,
-                Dock      = DockStyle.Top,
-                Height    = 36,
-                TextAlign = ContentAlignment.MiddleLeft
+                BackColor = ColorConstants.FondoPrincipal,
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.TopLeft,
+                AutoSize  = false
             };
 
-            // Separador
+            seccionLayout.Controls.Add(lblSeccion,    0, 0);
+            seccionLayout.Controls.Add(lblSeccionSub, 0, 1);
+
             var sep = new Panel
             {
                 Dock      = DockStyle.Top,
                 Height    = 2,
-                BackColor = ColorConstants.Separador,
-                Margin    = new Padding(0, 8, 0, 8)
+                BackColor = ColorConstants.Separador
             };
 
-            // Espacio
             var espacio = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 16,
-                BackColor = Color.Transparent
+                Height    = 14,
+                BackColor = ColorConstants.FondoPrincipal
             };
 
             // TableLayoutPanel 2x2 para las cards
             _tableCards = new TableLayoutPanel
             {
-                Dock        = DockStyle.Fill,
-                ColumnCount = 2,
-                RowCount    = 2,
-                BackColor   = Color.Transparent,
-                CellBorderStyle = TableLayoutPanelCellBorderStyle.None
+                Dock            = DockStyle.Fill,
+                ColumnCount     = 2,
+                RowCount        = 2,
+                BackColor       = ColorConstants.FondoPrincipal,
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
+                Padding         = new Padding(0)
             };
             _tableCards.ColumnStyles.Add(
                 new ColumnStyle(SizeType.Percent, 50f));
@@ -315,45 +362,39 @@ namespace RestauranteSO.Presentation.Forms
                 new RowStyle(SizeType.Percent, 50f));
             _tableCards.RowStyles.Add(
                 new RowStyle(SizeType.Percent, 50f));
-            _tableCards.Padding = new Padding(8);
 
-            // Crear cards
-            _card1 = CrearCard(
-                "01", "🍽",
+            _card1 = CrearCard("01", "🍽",
                 "Productor — Consumidor",
                 "Clientes generan pedidos.\nCocineros los consumen.\nSemaphoreSlim + ConcurrentQueue.",
                 "● Lista para iniciar",
                 ColorConstants.TarjetaProductor);
 
-            _card2 = CrearCard(
-                "02", "📖",
+            _card2 = CrearCard("02", "📖",
                 "Lectores — Escritores",
                 "Meseros leen el menú.\nEl Gerente lo actualiza.\nReaderWriterLockSlim.",
                 "● Lista para iniciar",
                 ColorConstants.TarjetaLectores);
 
-            _card3 = CrearCard(
-                "03", "⚡",
+            _card3 = CrearCard("03", "⚡",
                 "Ataque: Inyección de Pedidos",
                 "Ingeniería social.\nFalso técnico compromete\nla cola de pedidos.",
                 "⚠ Simulación Educativa",
                 ColorConstants.TarjetaAtaque1);
 
-            _card4 = CrearCard(
-                "04", "🎣",
+            _card4 = CrearCard("04", "🎣",
                 "Ataque: Phishing al Gerente",
-                "Correo falso compromete\ncredenciales del Gerente.\nMenú alterado.",
+                "Correo falso compromete\ncredenciales del Gerente.\nMenú comprometido.",
                 "⚠ Simulación Educativa",
                 ColorConstants.TarjetaAtaque2);
 
             _card3.EstadoColor = ColorConstants.AcentoSecundario;
             _card4.EstadoColor = ColorConstants.AlertaAtaque;
 
-            // Agregar cards al TableLayout con Dock.Fill + Margin
-            foreach (var card in new[] { _card1, _card2, _card3, _card4 })
+            foreach (var c in new[] { _card1, _card2, _card3, _card4 })
             {
-                card.Dock   = DockStyle.Fill;
-                card.Margin = new Padding(16);
+                c.Dock      = DockStyle.Fill;
+                c.Margin    = new Padding(14);
+                c.BackColor = ColorConstants.FondoCard;
             }
 
             _tableCards.Controls.Add(_card1, 0, 0);
@@ -361,20 +402,28 @@ namespace RestauranteSO.Presentation.Forms
             _tableCards.Controls.Add(_card3, 0, 1);
             _tableCards.Controls.Add(_card4, 1, 1);
 
-            // Eventos clic
-            _card1.Click += (_, _) => AbrirSimulacionPC();
-            _card2.Click += (_, _) => AbrirSimulacionLE();
-            _card3.Click += (_, _) => AbrirAtaquePC();
-            _card4.Click += (_, _) => AbrirAtaqueLE();
+            _card1.CardClicked += (_, _) => AbrirSimulacionPC();
+            _card2.CardClicked += (_, _) => AbrirSimulacionLE();
+            _card3.CardClicked += (_, _) => AbrirAtaquePC();
+            _card4.CardClicked += (_, _) => AbrirAtaqueLE();
 
-            // Tooltips
-            ConfigurarTooltips();
+            var tt = new ToolTip
+            {
+                ShowAlways = true, InitialDelay = 500, AutoPopDelay = 5000
+            };
+            tt.SetToolTip(_card1,
+                "Simulación Productor-Consumidor\nClic para abrir");
+            tt.SetToolTip(_card2,
+                "Simulación Lectores-Escritores\nClic para abrir");
+            tt.SetToolTip(_card3,
+                "Ataque Educativo: Ingeniería Social\n⚠ Solo simulación");
+            tt.SetToolTip(_card4,
+                "Ataque Educativo: Phishing\n⚠ Solo simulación");
 
             _panelCentral.Controls.Add(_tableCards);
             _panelCentral.Controls.Add(espacio);
             _panelCentral.Controls.Add(sep);
-            _panelCentral.Controls.Add(lblSeccionSub);
-            _panelCentral.Controls.Add(lblSeccion);
+            _panelCentral.Controls.Add(seccionLayout);
             Controls.Add(_panelCentral);
         }
 
@@ -391,36 +440,9 @@ namespace RestauranteSO.Presentation.Forms
                 EstadoTexto = estado,
                 ColorAcento = acento,
                 EstadoColor = ColorConstants.AcentoExito,
+                BackColor   = ColorConstants.FondoCard,
                 Cursor      = Cursors.Hand
             };
-        }
-
-        private void ConfigurarTooltips()
-        {
-            var tt = new ToolTip
-            {
-                IsBalloon    = false,
-                ShowAlways   = true,
-                InitialDelay = 600,
-                AutoPopDelay = 6000
-            };
-
-            tt.SetToolTip(_card1,
-                "Simulación Productor-Consumidor\n" +
-                "Hilos reales con SemaphoreSlim\n" +
-                "Haga clic para abrir");
-            tt.SetToolTip(_card2,
-                "Simulación Lectores-Escritores\n" +
-                "ReaderWriterLockSlim\n" +
-                "Haga clic para abrir");
-            tt.SetToolTip(_card3,
-                "Ataque Educativo: Ingeniería Social\n" +
-                "Falso técnico compromete la cola\n" +
-                "⚠ Solo simulación educativa");
-            tt.SetToolTip(_card4,
-                "Ataque Educativo: Phishing\n" +
-                "Credenciales robadas → menú alterado\n" +
-                "⚠ Solo simulación educativa");
         }
 
         // ─── FOOTER ───────────────────────────────────────────────────────────
@@ -429,29 +451,27 @@ namespace RestauranteSO.Presentation.Forms
         {
             _footer = new StatusStrip();
             AppTheme.AplicarAStatusStrip(_footer);
-            _footer.Height = 32;
+            _footer.Height = 30;
 
-            _footerEstado = new ToolStripStatusLabel
+            var footerEstado = new ToolStripStatusLabel
             {
                 Text      = "✅ Sistema listo",
                 ForeColor = ColorConstants.AcentoExito,
                 Font      = AppTheme.FuenteSmallBold
             };
 
-            var sep1 = new ToolStripSeparator();
-
             _footerHilos = new ToolStripStatusLabel
             {
-                Text      = "Hilos: 0",
+                Text      = "Hilos: —  |  RAM: — MB",
                 ForeColor = ColorConstants.TextoSecundario,
                 Font      = AppTheme.FuenteStatus
             };
 
-            var sep2 = new ToolStripSeparator();
-
             _footerVersion = new ToolStripStatusLabel
             {
-                Text      = $"v{AppConstants.Version}  |  .NET {Environment.Version.ToString(2)}  |  WinForms",
+                Text      =
+                    $"v{AppConstants.Version}  |  " +
+                    $".NET {Environment.Version.ToString(2)}  |  WinForms",
                 ForeColor = ColorConstants.TextoHint,
                 Font      = AppTheme.FuenteSmall
             };
@@ -460,12 +480,12 @@ namespace RestauranteSO.Presentation.Forms
 
             _footerAutor = new ToolStripStatusLabel
             {
-                Text      = $"© {AppConstants.Anio} {AppConstants.NombreApp} — Simulación Educativa SO",
+                Text      =
+                    $"© {AppConstants.Anio} {AppConstants.NombreApp}" +
+                    " — Simulación Educativa SO",
                 ForeColor = ColorConstants.TextoHint,
                 Font      = AppTheme.FuenteSmall
             };
-
-            var sep3 = new ToolStripSeparator();
 
             _footerHora = new ToolStripStatusLabel
             {
@@ -476,8 +496,15 @@ namespace RestauranteSO.Presentation.Forms
 
             _footer.Items.AddRange(new ToolStripItem[]
             {
-                _footerEstado, sep1, _footerHilos, sep2,
-                _footerVersion, spacer, _footerAutor, sep3, _footerHora
+                footerEstado,
+                new ToolStripSeparator(),
+                _footerHilos,
+                new ToolStripSeparator(),
+                _footerVersion,
+                spacer,
+                _footerAutor,
+                new ToolStripSeparator(),
+                _footerHora
             });
 
             Controls.Add(_footer);
@@ -491,21 +518,27 @@ namespace RestauranteSO.Presentation.Forms
             _timerReloj.Tick += (_, _) =>
             {
                 string hora = DateTime.Now.ToString("HH:mm:ss");
-                _lblHora.Text    = hora;
-                _footerHora.Text = hora;
-                _lblFecha.Text   = DateTime.Now.ToString(
-                    "dddd, dd 'de' MMMM 'de' yyyy",
-                    new System.Globalization.CultureInfo("es-ES"));
+                if (_lblHora    != null) _lblHora.Text    = hora;
+                if (_footerHora != null) _footerHora.Text = hora;
+                if (_lblFecha   != null)
+                    _lblFecha.Text = DateTime.Now.ToString(
+                        "dddd, dd 'de' MMMM 'de' yyyy",
+                        new System.Globalization.CultureInfo("es-ES"));
             };
             _timerReloj.Start();
 
-            _timerStats = new System.Windows.Forms.Timer { Interval = 2000 };
+            _timerStats = new System.Windows.Forms.Timer { Interval = 2500 };
             _timerStats.Tick += (_, _) =>
             {
-                var proc = System.Diagnostics.Process.GetCurrentProcess();
-                _footerHilos.Text =
-                    $"Hilos: {proc.Threads.Count}  |  " +
-                    $"RAM: {proc.WorkingSet64 / 1024 / 1024} MB";
+                try
+                {
+                    var proc = System.Diagnostics.Process.GetCurrentProcess();
+                    if (_footerHilos != null)
+                        _footerHilos.Text =
+                            $"Hilos: {proc.Threads.Count}  |  " +
+                            $"RAM: {proc.WorkingSet64 / 1024 / 1024} MB";
+                }
+                catch { }
             };
             _timerStats.Start();
         }
@@ -514,21 +547,30 @@ namespace RestauranteSO.Presentation.Forms
 
         private void AbrirSimulacionPC()
         {
-            if (_frmPC == null || _frmPC.IsDisposed)
+            try
             {
-                var svc    = AppSettings.Resolver<ProductorConsumidorService>();
-                var ataque = AppSettings.Resolver<AtaqueProductorConsumidorService>();
-                _frmPC = new FrmProductorConsumidor(svc, ataque, _logger);
-                _frmPC.FormClosed += (_, _) =>
+                if (_frmPC == null || _frmPC.IsDisposed)
                 {
-                    _frmPC = null;
-                    ActualizarCardEstado(_card1,
-                        "● Lista para iniciar", ColorConstants.AcentoExito);
-                };
+                    var svc    = AppSettings.Resolver<ProductorConsumidorService>();
+                    var ataque = AppSettings.Resolver<AtaqueProductorConsumidorService>();
+                    _frmPC = new FrmProductorConsumidor(svc, ataque, _logger);
+                    _frmPC.FormClosed += (_, _) =>
+                    {
+                        _frmPC = null;
+                        ActualizarCard(_card1,
+                            "● Lista para iniciar", ColorConstants.AcentoExito);
+                    };
+                }
+                ActualizarCard(_card1, "▶ Ventana abierta",
+                    ColorConstants.TarjetaProductor);
+                AbrirVentanaHija(_frmPC);
             }
-            ActualizarCardEstado(_card1,
-                "▶ Ventana abierta", ColorConstants.TarjetaProductor);
-            AbrirVentanaHija(_frmPC);
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error al abrir Productor-Consumidor:\n\n{ex.Message}\n\n{ex.StackTrace}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void AbrirSimulacionLE()
@@ -541,12 +583,12 @@ namespace RestauranteSO.Presentation.Forms
                 _frmLE.FormClosed += (_, _) =>
                 {
                     _frmLE = null;
-                    ActualizarCardEstado(_card2,
+                    ActualizarCard(_card2,
                         "● Lista para iniciar", ColorConstants.AcentoExito);
                 };
             }
-            ActualizarCardEstado(_card2,
-                "▶ Ventana abierta", ColorConstants.TarjetaLectores);
+            ActualizarCard(_card2, "▶ Ventana abierta",
+                ColorConstants.TarjetaLectores);
             AbrirVentanaHija(_frmLE);
         }
 
@@ -560,12 +602,13 @@ namespace RestauranteSO.Presentation.Forms
                 _frmAPC.FormClosed += (_, _) =>
                 {
                     _frmAPC = null;
-                    ActualizarCardEstado(_card3,
-                        "⚠ Simulación Educativa", ColorConstants.AcentoSecundario);
+                    ActualizarCard(_card3,
+                        "⚠ Simulación Educativa",
+                        ColorConstants.AcentoSecundario);
                 };
             }
-            ActualizarCardEstado(_card3,
-                "⚡ Ataque en curso", ColorConstants.AlertaAtaque);
+            ActualizarCard(_card3, "⚡ Ataque en curso",
+                ColorConstants.AlertaAtaque);
             AbrirVentanaHija(_frmAPC);
         }
 
@@ -579,12 +622,13 @@ namespace RestauranteSO.Presentation.Forms
                 _frmALE.FormClosed += (_, _) =>
                 {
                     _frmALE = null;
-                    ActualizarCardEstado(_card4,
-                        "⚠ Simulación Educativa", ColorConstants.AlertaAtaque);
+                    ActualizarCard(_card4,
+                        "⚠ Simulación Educativa",
+                        ColorConstants.AlertaAtaque);
                 };
             }
-            ActualizarCardEstado(_card4,
-                "🎣 Phishing activo", ColorConstants.AlertaAtaque);
+            ActualizarCard(_card4, "🎣 Phishing activo",
+                ColorConstants.AlertaAtaque);
             AbrirVentanaHija(_frmALE);
         }
 
@@ -598,7 +642,7 @@ namespace RestauranteSO.Presentation.Forms
             ventana.Show();
         }
 
-        private void ActualizarCardEstado(
+        private void ActualizarCard(
             SimulationCard card, string texto, Color color)
         {
             card.EstadoTexto = texto;

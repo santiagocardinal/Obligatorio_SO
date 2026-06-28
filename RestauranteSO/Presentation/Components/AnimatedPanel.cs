@@ -5,7 +5,6 @@ namespace RestauranteSO.Presentation.Components
     public sealed class AnimatedPanel : Panel
     {
         private readonly System.Windows.Forms.Timer _fadeTimer;
-        private bool _fadingIn = false;
 
         public AnimatedPanel()
         {
@@ -16,15 +15,13 @@ namespace RestauranteSO.Presentation.Components
 
         public void MostrarConFade()
         {
-            Visible   = true;
-            _fadingIn = true;
+            Visible = true;
             _fadeTimer.Start();
         }
 
         private void FadeTimer_Tick(object? sender, EventArgs e)
         {
             _fadeTimer.Stop();
-            _fadingIn = false;
             Invalidate();
         }
 

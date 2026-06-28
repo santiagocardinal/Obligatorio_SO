@@ -1,11 +1,3 @@
-// =============================================================================
-// RestauranteSO - Sistema de Simulación de Sistemas Operativos
-// Archivo  : Presentation/Forms/FrmAtaqueProductorConsumidor.cs
-// Propósito: Abre directamente la simulación Productor-Consumidor con el
-//            ataque ya activo. Incluye narrativa completa del escenario.
-// SOLID    : SRP - solo presenta el ataque sobre PC.
-// =============================================================================
-
 using RestauranteSO.Constants;
 using RestauranteSO.Domain.Enums;
 using RestauranteSO.Domain.Interfaces;
@@ -17,9 +9,9 @@ namespace RestauranteSO.Presentation.Forms
 {
     public sealed class FrmAtaqueProductorConsumidor : Form
     {
-        private readonly ProductorConsumidorService _service;
+        private readonly ProductorConsumidorService       _service;
         private readonly AtaqueProductorConsumidorService _attackService;
-        private readonly ISimulationLogger _logger;
+        private readonly ISimulationLogger                _logger;
 
         public FrmAtaqueProductorConsumidor(
             ProductorConsumidorService service,
@@ -35,50 +27,108 @@ namespace RestauranteSO.Presentation.Forms
         private void InitializeComponent()
         {
             SuspendLayout();
-
             Text          = "⚡ Ataque: Inyección de Pedidos | RestauranteSO";
-            Size          = new Size(1300, 860);
+            WindowState   = FormWindowState.Maximized;
+            MinimumSize   = new Size(1200, 750);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor     = ColorConstants.FondoPrincipal;
             Font          = AppTheme.FuenteLabel;
 
-            // Banner de ataque en la parte superior
-            var panelBannerAtaque = ConstruirBannerAtaque();
-            Controls.Add(panelBannerAtaque);
+            // Banner de ataque
+            var banner = new Panel
+            {
+                Dock      = DockStyle.Top,
+                Height    = 42,
+                BackColor = Color.FromArgb(60, 15, 15)
+            };
+            banner.Paint += (_, e) =>
+            {
+                using var pen = new Pen(ColorConstants.AlertaAtaque, 2);
+                e.Graphics.DrawLine(pen, 0, banner.Height - 2,
+                    banner.Width, banner.Height - 2);
+            };
 
-            // Embeber el FrmProductorConsumidor como panel dentro de este form
-            var frmPC = new FrmProductorConsumidor(
-                _service, _attackService, _logger);
-            frmPC.TopLevel   = false;
-            frmPC.FormBorderStyle = FormBorderStyle.None;
-            frmPC.Dock       = DockStyle.Fill;
-            frmPC.Visible    = true;
+            var bannerLayout = new TableLayoutPanel
+            {
+                Dock        = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount    = 1,
+                BackColor   = Color.FromArgb(60, 15, 15),
+                Padding     = new Padding(12, 0, 12, 0)
+            };
+            bannerLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 65f));
+            bannerLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35f));
+            bannerLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100f));
 
-            Controls.Add(frmPC);
+            bannerLayout.Controls.Add(new Label
+            {
+                Text      = "⚡ MÓDULO DE ATAQUE EDUCATIVO — Ingeniería Social + Inyección en Cola",
+                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
+                ForeColor = ColorConstants.AlertaAtaque,
+                BackColor = Color.FromArgb(60, 15, 15),
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft
+            }, 0, 0);
+
+            bannerLayout.Controls.Add(new Label
+            {
+                Text      = "⚠ SIMULACIÓN EDUCATIVA — Ningún ataque real es ejecutado",
+                Font      = AppTheme.FuenteSmall,
+                ForeColor = ColorConstants.TextoHint,
+                BackColor = Color.FromArgb(60, 15, 15),
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleRight
+            }, 1, 0);
+
+            banner.Controls.Add(bannerLayout);
+            Controls.Add(banner);
+
+            // Panel contenedor para el form de simulación
+            var contenedor = new Panel
+            {
+                Dock      = DockStyle.Fill,
+                BackColor = ColorConstants.FondoPrincipal
+            };
+            Controls.Add(contenedor);
 
             ResumeLayout(true);
 
-            // Auto-activar el ataque al cargar el formulario
+            // Al cargar: iniciar simulación y mostrar diálogo de IS
             Load += async (_, _) =>
             {
-                await Task.Delay(800);
+                await Task.Delay(500);
 
-                // Iniciar la simulación
+                var frmPC = new FrmProductorConsumidor(
+                    _service, _attackService, _logger);
+                frmPC.TopLevel        = false;
+                frmPC.FormBorderStyle = FormBorderStyle.None;
+                frmPC.Dock            = DockStyle.Fill;
+                frmPC.Visible         = true;
+                contenedor.Controls.Add(frmPC);
+                frmPC.BringToFront();
+
+                // ── NUEVAS ──
+                frmPC.Size = contenedor.Size;
+                contenedor.Resize += (_, _) => frmPC.Size = contenedor.Size;
+                // ────────────
+
+                await Task.Delay(1000);
                 _service.Iniciar();
 
                 await Task.Delay(2000);
 
-                // Mostrar el diálogo de ingeniería social automáticamente
                 var dlg = new FrmIngenieriaSocial(
                     "🔧 Soporte Técnico — Actualización del Sistema",
                     "Estimado Encargado:\n\n" +
                     "Soy el Técnico Carlos Martínez de SistemaResto S.A.\n" +
-                    "Estoy aquí para instalar la actualización crítica #RS-2024-11.\n\n" +
-                    "⚠ Si no la instalamos ahora, el sistema de pedidos\n" +
-                    "puede perder datos esta noche.\n\n" +
+                    "Estoy aquí para instalar la actualización crítica.\n\n" +
+                    "⚠ Si no la instalamos ahora, el sistema puede perder datos.\n\n" +
                     "¿Me da acceso al sistema por 5 minutos?",
-                    "✓ Sí, adelante (instalar actualización)",
-                    "✗ No, esperaré autorización escrita");
+                    "✓ Sí, adelante",
+                    "✗ No, esperaré autorización");
 
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                     _attackService.ActivarAtaque(AttackType.InyeccionDePedidos);
@@ -86,52 +136,9 @@ namespace RestauranteSO.Presentation.Forms
 
             FormClosing += (_, _) =>
             {
-                if (_service.EstaCorreindo)    _service.Detener();
+                if (_service.EstaCorreindo)        _service.Detener();
                 if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
             };
-        }
-
-        private Panel ConstruirBannerAtaque()
-        {
-            var panel = new Panel
-            {
-                Dock      = DockStyle.Top,
-                Height    = 42,
-                BackColor = Color.FromArgb(60, 15, 15),
-                Padding   = new Padding(12, 0, 12, 0)
-            };
-            panel.Paint += (_, e) =>
-            {
-                using var pen = new Pen(ColorConstants.AlertaAtaque, 2);
-                e.Graphics.DrawLine(pen, 0, panel.Height - 2,
-                    panel.Width, panel.Height - 2);
-            };
-
-            var lblTit = new Label
-            {
-                Text =
-                    "⚡ MÓDULO DE ATAQUE EDUCATIVO — " +
-                    "Ingeniería Social + Inyección en Cola de Pedidos",
-                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = ColorConstants.AlertaAtaque,
-                AutoSize  = true,
-                Location  = new Point(12, 10)
-            };
-
-            var lblSub = new Label
-            {
-                Text      = "⚠ SIMULACIÓN EDUCATIVA — Ningún ataque real es ejecutado",
-                Font      = AppTheme.FuenteSmall,
-                ForeColor = ColorConstants.TextoHint,
-                Anchor    = AnchorStyles.Top | AnchorStyles.Right,
-                AutoSize  = true
-            };
-            lblSub.Location = new Point(panel.Width - 340, 14);
-            panel.Resize += (_, _) =>
-                lblSub.Location = new Point(panel.Width - 340, 14);
-
-            panel.Controls.AddRange(new Control[] { lblTit, lblSub });
-            return panel;
         }
     }
 }

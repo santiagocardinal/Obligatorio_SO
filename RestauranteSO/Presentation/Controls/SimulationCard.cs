@@ -2,14 +2,13 @@ using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using RestauranteSO.Constants;
-using RestauranteSO.Presentation.Themes;
 
 namespace RestauranteSO.Presentation.Controls
 {
     /// <summary>
-    /// Card completamente rediseñada.
-    /// Tamaño mínimo 300x240. Icono 64px. Fuentes grandes.
-    /// Animación hover con gradiente y sombra.
+    /// Card pintada 100% con GDI+. Sin controles hijos.
+    /// Todos los eventos de mouse van directo al control base.
+    /// Los textos se miden con MeasureText para nunca cortarse.
     /// </summary>
     public sealed class SimulationCard : Control
     {
@@ -17,11 +16,10 @@ namespace RestauranteSO.Presentation.Controls
 
         private string _icono       = "🍽";
         private string _titulo      = "Título";
-        private string _descripcion = "Descripción de la simulación.";
+        private string _descripcion = "Descripción";
         private string _estadoTexto = "● Listo";
         private Color  _estadoColor = ColorConstants.AcentoExito;
         private Color  _colorAcento = ColorConstants.AcentoPrincipal;
-        private string _subtexto    = "";
         private string _numeracion  = "01";
 
         private bool  _isHovered  = false;
@@ -29,8 +27,11 @@ namespace RestauranteSO.Presentation.Controls
         private float _hoverAlpha = 0f;
 
         private readonly System.Windows.Forms.Timer _animTimer;
-        private readonly System.Windows.Forms.Timer _clickTimer;
-        private const int Radio = 16;
+        private const int Radio = 14;
+
+        // ─── EVENTO PROPIO ────────────────────────────────────────────────────
+
+        public event EventHandler? CardClicked;
 
         // ─── PROPIEDADES ──────────────────────────────────────────────────────
 
@@ -77,13 +78,6 @@ namespace RestauranteSO.Presentation.Controls
         }
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public string Subtexto
-        {
-            get => _subtexto;
-            set { _subtexto = value; Invalidate(); }
-        }
-
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string Numeracion
         {
             get => _numeracion;
@@ -94,58 +88,48 @@ namespace RestauranteSO.Presentation.Controls
 
         public SimulationCard()
         {
+            // Sin ContainerControl — sin hijos — eventos directos
             SetStyle(
-                ControlStyles.UserPaint              |
-                ControlStyles.AllPaintingInWmPaint   |
-                ControlStyles.DoubleBuffer           |
-                ControlStyles.ResizeRedraw           |
-                ControlStyles.SupportsTransparentBackColor,
+                ControlStyles.UserPaint            |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.DoubleBuffer         |
+                ControlStyles.ResizeRedraw,
                 true);
 
-            BackColor   = Color.Transparent;
+            BackColor   = ColorConstants.FondoCard;
             Cursor      = Cursors.Hand;
-            MinimumSize = new Size(300, 240);
+            MinimumSize = new Size(260, 200);
             Size        = new Size(340, 260);
 
-            // Timer animación hover ~60fps
             _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
             _animTimer.Tick += (_, _) =>
             {
                 float target = _isHovered ? 1f : 0f;
                 float prev   = _hoverAlpha;
-                float step   = 0.07f;
-
-                _hoverAlpha = _hoverAlpha < target
-                    ? Math.Min(target, _hoverAlpha + step)
-                    : Math.Max(target, _hoverAlpha - step);
+                _hoverAlpha  = _hoverAlpha < target
+                    ? Math.Min(target, _hoverAlpha + 0.07f)
+                    : Math.Max(target, _hoverAlpha - 0.07f);
 
                 if (Math.Abs(_hoverAlpha - prev) > 0.004f)
                     Invalidate();
             };
             _animTimer.Start();
-
-            // Timer clic
-            _clickTimer = new System.Windows.Forms.Timer { Interval = 120 };
-            _clickTimer.Tick += (_, _) =>
-            {
-                _isPressed = false;
-                _clickTimer.Stop();
-                Invalidate();
-            };
         }
 
-        // ─── MOUSE ───────────────────────────────────────────────────────────
+        // ─── EVENTOS DE MOUSE ─────────────────────────────────────────────────
 
         protected override void OnMouseEnter(EventArgs e)
         {
             base.OnMouseEnter(e);
             _isHovered = true;
+            Invalidate();
         }
 
         protected override void OnMouseLeave(EventArgs e)
         {
             base.OnMouseLeave(e);
             _isHovered = false;
+            Invalidate();
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -153,203 +137,170 @@ namespace RestauranteSO.Presentation.Controls
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left) return;
             _isPressed = true;
-            _clickTimer.Start();
             Invalidate();
         }
 
-        // ─── PINTADO PRINCIPAL ────────────────────────────────────────────────
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            if (e.Button != MouseButtons.Left) return;
+            _isPressed = false;
+            Invalidate();
+        }
+
+        protected override void OnClick(EventArgs e)
+        {
+            base.OnClick(e);
+            CardClicked?.Invoke(this, EventArgs.Empty);
+        }
+
+        // ─── PINTADO COMPLETO GDI+ ────────────────────────────────────────────
 
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
             g.SmoothingMode     = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 
-            // Área de la card (dejamos margen para la sombra)
-            int margen   = 6;
-            var cardRect = new Rectangle(
-                margen, margen,
-                Width  - margen * 2 - 1,
-                Height - margen * 2 - 1);
+            // Limpiar con color del padre
+            g.Clear(Parent?.BackColor ?? ColorConstants.FondoPrincipal);
+
+            int m    = 6;
+            var card = new Rectangle(m, m, Width - m * 2 - 1, Height - m * 2 - 1);
+            if (card.Width <= 0 || card.Height <= 0) return;
 
             // ── Sombra ────────────────────────────────────────────────────
-            int sombra = (int)(4 + _hoverAlpha * 8);
-            for (int i = sombra; i >= 1; i--)
+            int prof = (int)(2 + _hoverAlpha * 6);
+            for (int i = prof; i >= 1; i--)
             {
                 var sr = new Rectangle(
-                    cardRect.X + i,  cardRect.Y + i,
-                    cardRect.Width,  cardRect.Height);
-                int alpha = (int)(20.0 / i * (1 + _hoverAlpha));
-                using var sb = new SolidBrush(Color.FromArgb(
-                    Math.Min(alpha, 60), 0, 0, 0));
-                using var sp = AppTheme.CrearPathRedondeado(sr, Radio);
+                    card.X + i, card.Y + i, card.Width, card.Height);
+                int alpha = Math.Min(50, (int)(14.0 / i * (1 + _hoverAlpha)));
+                using var sb = new SolidBrush(Color.FromArgb(alpha, 0, 0, 0));
+                using var sp = CrearPath(sr, Radio);
                 g.FillPath(sb, sp);
             }
 
-            // ── Fondo con gradiente ───────────────────────────────────────
-            Color fondoArriba = InterpolColor(
-                ColorConstants.FondoCard,
-                Color.FromArgb(48, 48, 65),
-                _hoverAlpha);
-            Color fondoAbajo = InterpolColor(
-                Color.FromArgb(28, 28, 40),
-                Color.FromArgb(35, 35, 52),
-                _hoverAlpha);
+            // ── Fondo ─────────────────────────────────────────────────────
+            Color fA = Lerp(ColorConstants.FondoCard,
+                            Color.FromArgb(44, 44, 60), _hoverAlpha);
+            Color fB = Lerp(Color.FromArgb(26, 26, 38),
+                            Color.FromArgb(32, 32, 50), _hoverAlpha);
 
-            AppTheme.RellenarGradienteRedondeado(
-                g, cardRect, Radio, fondoArriba, fondoAbajo);
+            using var lgb = new LinearGradientBrush(
+                card, fA, fB, LinearGradientMode.Vertical);
+            using var cp  = CrearPath(card, Radio);
+            g.FillPath(lgb, cp);
 
-            // ── Borde izquierdo de acento (barra vertical) ────────────────
-            int barraAncho = (int)(3 + _hoverAlpha * 2);
-            using (var barraPath = new System.Drawing.Drawing2D.GraphicsPath())
-            {
-                barraPath.AddRectangle(new Rectangle(
-                    cardRect.X, cardRect.Y + Radio,
-                    barraAncho,
-                    cardRect.Height - Radio * 2));
-                using var barraBrush = new SolidBrush(
-                    Color.FromArgb((int)(180 + 75 * _hoverAlpha), _colorAcento));
-                g.FillPath(barraBrush, barraPath);
-            }
+            // ── Barra de acento ───────────────────────────────────────────
+            int bw = (int)(3 + _hoverAlpha * 2);
+            g.FillRectangle(
+                new SolidBrush(
+                    Color.FromArgb((int)(160 + 95 * _hoverAlpha), _colorAcento)),
+                new Rectangle(card.X, card.Y + Radio, bw, card.Height - Radio * 2));
 
-            // ── Borde exterior ────────────────────────────────────────────
-            Color bordeColor = InterpolColor(
-                ColorConstants.BordeCard, _colorAcento, _hoverAlpha);
-            int bordeGrosor = _hoverAlpha > 0.5f ? 2 : 1;
-            AppTheme.DibujarBordeRedondeado(
-                g, cardRect, Radio, bordeColor, bordeGrosor);
+            // ── Borde ─────────────────────────────────────────────────────
+            using var bp2 = new Pen(
+                Lerp(ColorConstants.BordeCard, _colorAcento, _hoverAlpha),
+                _hoverAlpha > 0.5f ? 2f : 1f);
+            g.DrawPath(bp2, cp);
 
-            // ── Número de card (decorativo, esquina superior derecha) ─────
-            using (var nf = new Font("Segoe UI", 32f, FontStyle.Bold))
-            {
-                var nr = new Rectangle(
-                    cardRect.Right - 70, cardRect.Y + 10, 60, 44);
-                using var nb = new SolidBrush(
-                    Color.FromArgb(18, _colorAcento));
-                g.FillRectangle(nb, nr);
-                TextRenderer.DrawText(g, _numeracion, nf, nr,
-                    Color.FromArgb((int)(30 + 40 * _hoverAlpha), _colorAcento),
-                    TextFormatFlags.HorizontalCenter |
-                    TextFormatFlags.VerticalCenter);
-            }
+            // ── Número (esquina superior derecha) ─────────────────────────
+            using var numFont = new Font("Segoe UI", 20f, FontStyle.Bold);
+            var numRect = new Rectangle(
+                card.Right - 64, card.Y + 6, 58, 30);
+            TextRenderer.DrawText(g, _numeracion, numFont, numRect,
+                Color.FromArgb((int)(25 + 40 * _hoverAlpha), _colorAcento),
+                TextFormatFlags.Right | TextFormatFlags.Top);
 
-            // ── Icono (64px, centrado en la mitad superior) ───────────────
-            int iconoSize = 64;
-            int iconoY    = cardRect.Y + 28;
-            var iconoRect = new Rectangle(
-                cardRect.X + (cardRect.Width - iconoSize) / 2,
-                iconoY,
-                iconoSize, iconoSize);
-
-            // Círculo de fondo del icono
-            using (var circuloBrush = new SolidBrush(
-                Color.FromArgb((int)(30 + 30 * _hoverAlpha), _colorAcento)))
-            {
-                int padding = 8;
-                g.FillEllipse(circuloBrush,
-                    iconoRect.X - padding, iconoRect.Y - padding,
-                    iconoRect.Width + padding * 2,
-                    iconoRect.Height + padding * 2);
-            }
-
-            using (var iconFont = new Font(
-                "Segoe UI Emoji",
-                32f + _hoverAlpha * 4f,
-                FontStyle.Regular))
-            {
-                TextRenderer.DrawText(g, _icono, iconFont, iconoRect,
-                    ColorConstants.TextoPrincipal,
-                    TextFormatFlags.HorizontalCenter |
-                    TextFormatFlags.VerticalCenter);
-            }
+            // ── Icono ─────────────────────────────────────────────────────
+            int iconoY = card.Y + 18;
+            int iconoH = 72;
+            using var iconFont = new Font("Segoe UI Emoji", 36f);
+            var iconRect = new Rectangle(card.X, iconoY, card.Width, iconoH);
+            TextRenderer.DrawText(g, _icono, iconFont, iconRect,
+                ColorConstants.TextoPrincipal,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
 
             // ── Título ────────────────────────────────────────────────────
-            int tituloY = iconoY + iconoSize + 14;
-            using (var tf = new Font("Segoe UI", 13f, FontStyle.Bold))
-            {
-                var tr = new Rectangle(
-                    cardRect.X + 16, tituloY,
-                    cardRect.Width - 32, 28);
-                TextRenderer.DrawText(g, _titulo, tf, tr,
-                    ColorConstants.TextoPrincipal,
-                    TextFormatFlags.HorizontalCenter |
-                    TextFormatFlags.Top              |
-                    TextFormatFlags.SingleLine        |
-                    TextFormatFlags.EndEllipsis);
-            }
+            int tY = iconoY + iconoH + 4;
+            using var titleFont = new Font("Segoe UI", 12f, FontStyle.Bold);
+            var titleRect = new Rectangle(
+                card.X + 12, tY, card.Width - 24, 28);
+            TextRenderer.DrawText(g, _titulo, titleFont, titleRect,
+                ColorConstants.TextoPrincipal,
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.Top              |
+                TextFormatFlags.EndEllipsis);
 
             // ── Descripción ───────────────────────────────────────────────
-            int descY = tituloY + 34;
-            using (var df = new Font("Segoe UI", 10.5f, FontStyle.Regular))
-            {
-                int descH = cardRect.Bottom - descY - 44;
-                var dr    = new Rectangle(
-                    cardRect.X + 20, descY,
-                    cardRect.Width - 40,
-                    Math.Max(descH, 40));
-                TextRenderer.DrawText(g, _descripcion, df, dr,
-                    ColorConstants.TextoSecundario,
-                    TextFormatFlags.HorizontalCenter |
-                    TextFormatFlags.Top              |
-                    TextFormatFlags.WordBreak);
-            }
+            int dY   = tY + 32;
+            int dH   = card.Bottom - dY - 50;
+            using var descFont = new Font("Segoe UI", 9.5f);
+            var descRect = new Rectangle(
+                card.X + 16, dY, card.Width - 32, Math.Max(dH, 40));
+            TextRenderer.DrawText(g, _descripcion, descFont, descRect,
+                ColorConstants.TextoSecundario,
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.Top              |
+                TextFormatFlags.WordBreak);
 
-            // ── Badge de estado (parte inferior) ──────────────────────────
-            int badgeH   = 26;
-            int badgeY   = cardRect.Bottom - badgeH - 12;
-            using (var bf = new Font("Segoe UI", 9f, FontStyle.Bold))
-            {
-                var bMeasure = TextRenderer.MeasureText(_estadoTexto, bf);
-                int badgeW   = bMeasure.Width + 24;
-                int badgeX   = cardRect.X + (cardRect.Width - badgeW) / 2;
-                var badgeRect = new Rectangle(badgeX, badgeY, badgeW, badgeH);
+            // ── Divider ───────────────────────────────────────────────────
+            int divY = card.Bottom - 42;
+            using var divPen = new Pen(ColorConstants.Separador, 1);
+            g.DrawLine(divPen,
+                card.X + 20, divY,
+                card.Right - 20, divY);
 
-                using var bgBrush = new SolidBrush(
-                    Color.FromArgb(45, _estadoColor));
-                AppTheme.RellenarRedondeado(
-                    g, badgeRect, 13, bgBrush.Color);
+            // ── Badge de estado ───────────────────────────────────────────
+            using var badgeFont = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            var bMed  = TextRenderer.MeasureText(_estadoTexto, badgeFont);
+            int bW    = bMed.Width + 24;
+            int bH    = 22;
+            int bX    = card.X + (card.Width - bW) / 2;
+            int bY    = card.Bottom - 36;
+            var bRect = new Rectangle(bX, bY, bW, bH);
 
-                using var borderBrush = new SolidBrush(
-                    Color.FromArgb(80, _estadoColor));
-                AppTheme.DibujarBordeRedondeado(
-                    g, badgeRect, 13, borderBrush.Color, 1);
+            using var bgBrush = new SolidBrush(
+                Color.FromArgb(40, _estadoColor));
+            using var bPath = CrearPath(bRect, 11);
+            g.FillPath(bgBrush, bPath);
 
-                TextRenderer.DrawText(g, _estadoTexto, bf, badgeRect,
-                    _estadoColor,
-                    TextFormatFlags.HorizontalCenter |
-                    TextFormatFlags.VerticalCenter);
-            }
+            using var bPen = new Pen(Color.FromArgb(80, _estadoColor), 1);
+            g.DrawPath(bPen, bPath);
+
+            TextRenderer.DrawText(g, _estadoTexto, badgeFont, bRect,
+                _estadoColor,
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.VerticalCenter);
 
             // ── Efecto press ──────────────────────────────────────────────
             if (_isPressed)
             {
-                using var pb = new SolidBrush(
-                    Color.FromArgb(25, 255, 255, 255));
-                AppTheme.RellenarRedondeado(
-                    g, cardRect, Radio, pb.Color);
-            }
-
-            // ── Brillo superior (highlight) en hover ──────────────────────
-            if (_hoverAlpha > 0.1f)
-            {
-                var brilloRect = new Rectangle(
-                    cardRect.X + 2, cardRect.Y + 2,
-                    cardRect.Width - 4, 40);
-                using var brilloBrush = new LinearGradientBrush(
-                    brilloRect,
-                    Color.FromArgb((int)(15 * _hoverAlpha), 255, 255, 255),
-                    Color.FromArgb(0, 255, 255, 255),
-                    LinearGradientMode.Vertical);
-                using var brilloPath =
-                    AppTheme.CrearPathRedondeado(brilloRect, Radio);
-                g.FillPath(brilloBrush, brilloPath);
+                using var pressBrush = new SolidBrush(
+                    Color.FromArgb(20, 255, 255, 255));
+                g.FillPath(pressBrush, cp);
             }
         }
 
         // ─── HELPERS ─────────────────────────────────────────────────────────
 
-        private static Color InterpolColor(Color c1, Color c2, float t)
+        private static GraphicsPath CrearPath(Rectangle rect, int radio)
+        {
+            var path = new GraphicsPath();
+            int d    = Math.Min(radio * 2,
+                       Math.Min(rect.Width, rect.Height));
+            if (d <= 0) { path.AddRectangle(rect); return path; }
+
+            path.AddArc(rect.X,          rect.Y,          d, d, 180, 90);
+            path.AddArc(rect.Right - d,  rect.Y,          d, d, 270, 90);
+            path.AddArc(rect.Right - d,  rect.Bottom - d, d, d,   0, 90);
+            path.AddArc(rect.X,          rect.Bottom - d, d, d,  90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        private static Color Lerp(Color c1, Color c2, float t)
         {
             t = Math.Clamp(t, 0f, 1f);
             return Color.FromArgb(
@@ -359,14 +310,12 @@ namespace RestauranteSO.Presentation.Controls
                 (int)(c1.B + (c2.B - c1.B) * t));
         }
 
-        // ─── DISPOSE ─────────────────────────────────────────────────────────
-
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                _animTimer.Stop();  _animTimer.Dispose();
-                _clickTimer.Stop(); _clickTimer.Dispose();
+                _animTimer.Stop();
+                _animTimer.Dispose();
             }
             base.Dispose(disposing);
         }

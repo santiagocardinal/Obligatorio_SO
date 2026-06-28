@@ -1,27 +1,8 @@
-// =============================================================================
-// RestauranteSO - Sistema de Simulación de Sistemas Operativos
-// Archivo  : Presentation/Forms/FrmIngenieriaSocial.cs
-// Propósito: Diálogo que simula un intento de ingeniería social.
-//            Aparece cuando el usuario activa el ataque en cualquier simulación.
-//            Muestra el escenario del atacante de forma convincente.
-// SOLID    : SRP - solo muestra el diálogo de ingeniería social.
-// =============================================================================
-
 using RestauranteSO.Constants;
 using RestauranteSO.Presentation.Themes;
 
 namespace RestauranteSO.Presentation.Forms
 {
-    /// <summary>
-    /// Formulario de simulación de ingeniería social.
-    ///
-    /// Diseñado para parecer un diálogo legítimo de soporte técnico
-    /// con el fin de demostrar cómo un atacante engaña a los usuarios.
-    ///
-    /// AVISO EDUCATIVO: Este formulario muestra técnicas de ingeniería
-    /// social ÚNICAMENTE con fines educativos. Ningún código malicioso
-    /// es ejecutado en ningún caso.
-    /// </summary>
     public sealed class FrmIngenieriaSocial : Form
     {
         private readonly string _tituloBandeja;
@@ -39,23 +20,22 @@ namespace RestauranteSO.Presentation.Forms
             _mensajeAtacante = mensajeAtacante;
             _textoAceptar    = textoAceptar;
             _textoRechazar   = textoRechazar;
-
             InitializeComponent();
         }
 
         private void InitializeComponent()
         {
-            Text          = _tituloBandeja;
-            Size          = new Size(540, 420);
-            MaximizeBox   = false;
-            MinimizeBox   = false;
-            StartPosition = FormStartPosition.CenterParent;
+            Text            = _tituloBandeja;
+            Size            = new Size(560, 480);
+            MaximizeBox     = false;
+            MinimizeBox     = false;
+            StartPosition   = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
-            BackColor     = ColorConstants.FondoPanel;
-            ForeColor     = ColorConstants.TextoPrincipal;
-            Font          = AppTheme.FuenteLabel;
+            BackColor       = ColorConstants.FondoPanel;
+            ForeColor       = ColorConstants.TextoPrincipal;
+            Font            = AppTheme.FuenteLabel;
 
-            // ── Banner de "soporte técnico" ───────────────────────────────
+            // ── Banner ────────────────────────────────────────────────────
             var panelBanner = new Panel
             {
                 Dock      = DockStyle.Top,
@@ -68,6 +48,7 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = "🔧",
                 Font      = new Font("Segoe UI Emoji", 22f),
                 ForeColor = Color.White,
+                BackColor = Color.FromArgb(30, 100, 200),
                 AutoSize  = false,
                 Size      = new Size(50, 56),
                 Location  = new Point(12, 2),
@@ -79,6 +60,7 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = "Soporte Técnico — SistemaResto S.A.",
                 Font      = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = Color.White,
+                BackColor = Color.FromArgb(30, 100, 200),
                 AutoSize  = true,
                 Location  = new Point(66, 12)
             };
@@ -88,60 +70,65 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = "Departamento de Tecnología y Sistemas",
                 Font      = new Font("Segoe UI", 8.5f),
                 ForeColor = Color.FromArgb(200, 220, 255),
+                BackColor = Color.FromArgb(30, 100, 200),
                 AutoSize  = true,
                 Location  = new Point(68, 34)
             };
 
-            panelBanner.Controls.AddRange(new Control[]
-                { lblBannerIco, lblBannerTit, lblBannerSub });
+            panelBanner.Controls.AddRange(
+                new Control[] { lblBannerIco, lblBannerTit, lblBannerSub });
 
             // ── Badge educativo ───────────────────────────────────────────
             var panelEdu = new Panel
             {
                 Dock      = DockStyle.Top,
                 Height    = 36,
-                BackColor = Color.FromArgb(30, 150, 80, 0),
+                BackColor = Color.FromArgb(60, 80, 20, 0),
                 Padding   = new Padding(12, 0, 12, 0)
             };
 
             var lblEdu = new Label
             {
                 Text =
-                    "⚠ SIMULACIÓN EDUCATIVA — Este mensaje simula un ataque " +
-                    "de Ingeniería Social. Nunca ocurre nada real.",
+                    "⚠ SIMULACIÓN EDUCATIVA — Este mensaje simula ingeniería social. " +
+                    "Nada real ocurre.",
                 Font      = AppTheme.FuenteSmall,
                 ForeColor = ColorConstants.AcentoSecundario,
+                BackColor = Color.FromArgb(60, 80, 20, 0),
                 Dock      = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft
             };
             panelEdu.Controls.Add(lblEdu);
 
-            // ── Contenido del mensaje ─────────────────────────────────────
-            var panelContenido = new Panel
+            // ── Mensaje del atacante ──────────────────────────────────────
+            var panelMensaje = new Panel
             {
-                Padding   = new Padding(20),
-                BackColor = Color.Transparent
+                Dock      = DockStyle.Top,
+                Height    = 180,
+                BackColor = ColorConstants.FondoPanel,
+                Padding   = new Padding(16, 8, 16, 8)
             };
 
             var lblMensaje = new RichTextBox
             {
-                Text       = _mensajeAtacante,
-                Font       = AppTheme.FuenteLabel,
-                BackColor  = Color.FromArgb(35, 35, 50),
-                ForeColor  = ColorConstants.TextoPrincipal,
+                Text        = _mensajeAtacante,
+                Font        = AppTheme.FuenteLabel,
+                BackColor   = Color.FromArgb(35, 35, 50),
+                ForeColor   = ColorConstants.TextoPrincipal,
                 BorderStyle = BorderStyle.None,
-                ReadOnly   = true,
-                ScrollBars = RichTextBoxScrollBars.None,
-                Location   = new Point(20, 12),
-                Size       = new Size(480, 160)
+                ReadOnly    = true,
+                ScrollBars  = RichTextBoxScrollBars.None,
+                Dock        = DockStyle.Fill
             };
+            panelMensaje.Controls.Add(lblMensaje);
 
             // ── Señales de alerta ─────────────────────────────────────────
             var panelAlertas = new Panel
             {
-                Location  = new Point(20, 180),
-                Size      = new Size(480, 100),
-                BackColor = Color.FromArgb(40, 220, 50, 50)
+                Dock      = DockStyle.Top,
+                Height    = 110,
+                BackColor = Color.FromArgb(40, 220, 50, 50),
+                Padding   = new Padding(8)
             };
             panelAlertas.Paint += (_, e) =>
             {
@@ -155,49 +142,64 @@ namespace RestauranteSO.Presentation.Forms
                 Text      = "🔴 Señales de Ingeniería Social detectadas:",
                 Font      = AppTheme.FuenteLabelBold,
                 ForeColor = ColorConstants.AlertaAtaque,
-                AutoSize  = true,
-                Location  = new Point(8, 6)
+                BackColor = Color.FromArgb(40, 220, 50, 50),
+                AutoSize  = false,
+                Dock      = DockStyle.Top,
+                Height    = 22,
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             var lblAlertas = new Label
             {
                 Text =
                     "• Urgencia artificial ('actualización crítica')\n" +
-                    "• Solicita acceso sin verificación de identidad previa\n" +
+                    "• Acceso sin verificación de identidad previa\n" +
                     "• Presión temporal para decidir rápidamente\n" +
-                    "• Nombre genérico de empresa sin credenciales verificables",
+                    "• Empresa genérica sin credenciales verificables",
                 Font      = AppTheme.FuenteSmall,
                 ForeColor = ColorConstants.TextoSecundario,
+                BackColor = Color.FromArgb(40, 220, 50, 50),
                 AutoSize  = false,
-                Size      = new Size(464, 72),
-                Location  = new Point(8, 24)
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.TopLeft
             };
 
-            panelAlertas.Controls.AddRange(new Control[]
-                { lblAlertaTit, lblAlertas });
-
-            panelContenido.Controls.AddRange(new Control[]
-                { lblMensaje, panelAlertas });
+            panelAlertas.Controls.Add(lblAlertas);
+            panelAlertas.Controls.Add(lblAlertaTit);
 
             // ── Botones ───────────────────────────────────────────────────
             var panelBotones = new Panel
             {
                 Dock      = DockStyle.Bottom,
-                Height    = 56,
+                Height    = 60,
                 BackColor = ColorConstants.FondoSuperior,
                 Padding   = new Padding(16, 10, 16, 10)
             };
 
+            var tblBotones = new TableLayoutPanel
+            {
+                Dock        = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount    = 1,
+                BackColor   = ColorConstants.FondoSuperior
+            };
+            tblBotones.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 50f));
+            tblBotones.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 50f));
+            tblBotones.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100f));
+
             var btnAceptar = new Button
             {
                 Text      = _textoAceptar,
-                Size      = new Size(200, 34),
+                Dock      = DockStyle.Fill,
                 Font      = AppTheme.FuenteBoton,
                 BackColor = ColorConstants.AlertaAtaque,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Cursor    = Cursors.Hand,
-                Location  = new Point(16, 11)
+                Margin    = new Padding(0, 0, 4, 0)
             };
             btnAceptar.FlatAppearance.BorderSize = 0;
             btnAceptar.Click += (_, _) =>
@@ -208,14 +210,14 @@ namespace RestauranteSO.Presentation.Forms
 
             var btnRechazar = new Button
             {
-                Text      = _textoRechazar + " (correcto ✓)",
-                Size      = new Size(200, 34),
+                Text      = _textoRechazar + " ✓",
+                Dock      = DockStyle.Fill,
                 Font      = AppTheme.FuenteBoton,
                 BackColor = ColorConstants.AcentoExito,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Cursor    = Cursors.Hand,
-                Location  = new Point(224, 11)
+                Margin    = new Padding(4, 0, 0, 0)
             };
             btnRechazar.FlatAppearance.BorderSize = 0;
             btnRechazar.Click += (_, _) =>
@@ -224,18 +226,18 @@ namespace RestauranteSO.Presentation.Forms
                 Close();
             };
 
-            panelBotones.Controls.AddRange(
-                new Control[] { btnAceptar, btnRechazar });
+            tblBotones.Controls.Add(btnAceptar,  0, 0);
+            tblBotones.Controls.Add(btnRechazar, 1, 0);
+            panelBotones.Controls.Add(tblBotones);
 
-            // ── Ensamblar form ────────────────────────────────────────────
-            int cuerpoY  = 96;   // banner + edu
-            int cuerpoH  = Height - cuerpoY - 56 - 8;
-            panelContenido.Location = new Point(0, cuerpoY);
-            panelContenido.Size     = new Size(Width - 16, cuerpoH);
-
+            // ── Ensamblar ─────────────────────────────────────────────────
             Controls.AddRange(new Control[]
             {
-                panelBanner, panelEdu, panelContenido, panelBotones
+                panelBotones,
+                panelAlertas,
+                panelMensaje,
+                panelEdu,
+                panelBanner
             });
         }
     }

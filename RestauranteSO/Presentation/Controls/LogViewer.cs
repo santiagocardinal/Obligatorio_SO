@@ -128,6 +128,9 @@ namespace RestauranteSO.Presentation.Controls
 
         private void AgregarLogInterno(LogEntry entry)
         {
+            // Proteger contra acceso después de dispose
+            if (_richText == null || _richText.IsDisposed) return;
+
             if (_cantidadLineas >= MaxLineas)
             {
                 int fin = _richText.Text.IndexOf('\n');

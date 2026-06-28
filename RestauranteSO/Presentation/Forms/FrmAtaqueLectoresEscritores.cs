@@ -1,11 +1,3 @@
-// =============================================================================
-// RestauranteSO - Sistema de Simulación de Sistemas Operativos
-// Archivo  : Presentation/Forms/FrmAtaqueLectoresEscritores.cs
-// Propósito: Abre la simulación Lectores-Escritores con ataque de phishing
-//            ya preparado para activarse. Incluye correo falso visual.
-// SOLID    : SRP.
-// =============================================================================
-
 using RestauranteSO.Constants;
 using RestauranteSO.Domain.Enums;
 using RestauranteSO.Domain.Interfaces;
@@ -17,9 +9,9 @@ namespace RestauranteSO.Presentation.Forms
 {
     public sealed class FrmAtaqueLectoresEscritores : Form
     {
-        private readonly LectoresEscritoresService _service;
+        private readonly LectoresEscritoresService       _service;
         private readonly AtaqueLectoresEscritoresService _attackService;
-        private readonly ISimulationLogger _logger;
+        private readonly ISimulationLogger               _logger;
 
         public FrmAtaqueLectoresEscritores(
             LectoresEscritoresService service,
@@ -35,101 +27,118 @@ namespace RestauranteSO.Presentation.Forms
         private void InitializeComponent()
         {
             SuspendLayout();
-
             Text          = "🎣 Ataque: Phishing al Gerente | RestauranteSO";
-            Size          = new Size(1300, 860);
+            WindowState   = FormWindowState.Maximized;
+            MinimumSize   = new Size(1100, 700);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor     = ColorConstants.FondoPrincipal;
             Font          = AppTheme.FuenteLabel;
 
-            var bannerAtaque = ConstruirBannerAtaque();
-            Controls.Add(bannerAtaque);
-
-            var frmLE = new FrmLectoresEscritores(
-                _service, _attackService, _logger);
-            frmLE.TopLevel        = false;
-            frmLE.FormBorderStyle = FormBorderStyle.None;
-            frmLE.Dock            = DockStyle.Fill;
-            frmLE.Visible         = true;
-            Controls.Add(frmLE);
-
-            ResumeLayout(true);
-
-            Load += async (_, _) =>
-            {
-                await Task.Delay(800);
-                _service.Iniciar();
-                await Task.Delay(3000);
-                MostrarCorreoPhishing();
-            };
-
-            FormClosing += (_, _) =>
-            {
-                if (_service.EstaCorreindo)    _service.Detener();
-                if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
-            };
-        }
-
-        private void MostrarCorreoPhishing()
-        {
-            using var dlg = new FrmIngenieriaSocial(
-                "📧 [BANDEJA DE ENTRADA] — 1 mensaje nuevo",
-                "De: noreply@sistema-gestion-restaurante.net\n" +
-                "Para: gerente@restaurantedoncod.com\n" +
-                "Asunto: ⚠ ACCIÓN REQUERIDA: Verificación de cuenta obligatoria\n\n" +
-                "Estimado/a Gerente,\n\n" +
-                "Hemos detectado actividad inusual en su cuenta del\n" +
-                "Sistema de Menús. Para proteger su cuenta, debe\n" +
-                "verificar sus credenciales en las próximas 2 horas.\n\n" +
-                "De lo contrario su acceso será suspendido temporalmente.",
-                "🔗 Verificar mi cuenta ahora",
-                "🗑 Mover a Spam (correcto ✓)");
-
-            if (dlg.ShowDialog(this) == DialogResult.OK)
-                _attackService.ActivarAtaque(AttackType.PhishingMenuAlterado);
-        }
-
-        private Panel ConstruirBannerAtaque()
-        {
-            var panel = new Panel
+            // Banner de ataque
+            var banner = new Panel
             {
                 Dock      = DockStyle.Top,
                 Height    = 42,
-                BackColor = Color.FromArgb(50, 10, 30),
-                Padding   = new Padding(12, 0, 12, 0)
+                BackColor = Color.FromArgb(50, 10, 30)
             };
-            panel.Paint += (_, e) =>
+            banner.Paint += (_, e) =>
             {
                 using var pen = new Pen(ColorConstants.TarjetaAtaque2, 2);
-                e.Graphics.DrawLine(pen, 0, panel.Height - 2,
-                    panel.Width, panel.Height - 2);
+                e.Graphics.DrawLine(pen, 0, banner.Height - 2,
+                    banner.Width, banner.Height - 2);
             };
 
-            var lblTit = new Label
+            var bannerLayout = new TableLayoutPanel
             {
-                Text =
-                    "🎣 MÓDULO DE ATAQUE EDUCATIVO — " +
-                    "Phishing + Compromiso del Menú Compartido (Lectores-Escritores)",
+                Dock        = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount    = 1,
+                BackColor   = Color.FromArgb(50, 10, 30),
+                Padding     = new Padding(12, 0, 12, 0)
+            };
+            bannerLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 65f));
+            bannerLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35f));
+            bannerLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100f));
+
+            bannerLayout.Controls.Add(new Label
+            {
+                Text      = "🎣 MÓDULO DE ATAQUE EDUCATIVO — Phishing + Compromiso del Menú",
                 Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
                 ForeColor = ColorConstants.TarjetaAtaque2,
-                AutoSize  = true,
-                Location  = new Point(12, 10)
-            };
+                BackColor = Color.FromArgb(50, 10, 30),
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft
+            }, 0, 0);
 
-            var lblSub = new Label
+            bannerLayout.Controls.Add(new Label
             {
                 Text      = "⚠ SIMULACIÓN EDUCATIVA — Ningún ataque real es ejecutado",
                 Font      = AppTheme.FuenteSmall,
                 ForeColor = ColorConstants.TextoHint,
-                Anchor    = AnchorStyles.Top | AnchorStyles.Right,
-                AutoSize  = true
-            };
-            lblSub.Location = new Point(panel.Width - 340, 14);
-            panel.Resize += (_, _) =>
-                lblSub.Location = new Point(panel.Width - 340, 14);
+                BackColor = Color.FromArgb(50, 10, 30),
+                Dock      = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleRight
+            }, 1, 0);
 
-            panel.Controls.AddRange(new Control[] { lblTit, lblSub });
-            return panel;
+            banner.Controls.Add(bannerLayout);
+            Controls.Add(banner);
+
+            var contenedor = new Panel
+            {
+                Dock      = DockStyle.Fill,
+                BackColor = ColorConstants.FondoPrincipal
+            };
+            Controls.Add(contenedor);
+
+            ResumeLayout(true);
+
+           Load += async (_, _) =>
+            {
+                await Task.Delay(500);
+
+                var frmLE = new FrmLectoresEscritores(
+                    _service, _attackService, _logger);
+                frmLE.TopLevel        = false;
+                frmLE.FormBorderStyle = FormBorderStyle.None;
+                frmLE.Dock            = DockStyle.Fill;
+                frmLE.Visible         = true;
+                contenedor.Controls.Add(frmLE);
+                frmLE.BringToFront();
+
+                // ── ESTAS DOS LÍNEAS SON LAS NUEVAS ──────────────────────────
+                frmLE.Size = contenedor.Size;
+                contenedor.Resize += (_, _) => frmLE.Size = contenedor.Size;
+                // ─────────────────────────────────────────────────────────────
+
+                await Task.Delay(1000);
+                _service.Iniciar();
+
+                await Task.Delay(3000);
+
+                var dlg = new FrmIngenieriaSocial(
+                    "📧 [BANDEJA] — 1 mensaje nuevo",
+                    "De: noreply@sistema-gestion-restaurante.net\n" +
+                    "Para: gerente@restaurantedoncod.com\n" +
+                    "Asunto: ⚠ ACCIÓN REQUERIDA: Verificación obligatoria\n\n" +
+                    "Estimado/a Gerente,\n\n" +
+                    "Detectamos actividad inusual en su cuenta.\n" +
+                    "Debe verificar sus credenciales en las próximas 2 horas.\n\n" +
+                    "De lo contrario su acceso será suspendido.",
+                    "🔗 Verificar mi cuenta ahora",
+                    "🗑 Mover a Spam");
+
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                    _attackService.ActivarAtaque(AttackType.PhishingMenuAlterado);
+            };
+
+            FormClosing += (_, _) =>
+            {
+                if (_service.EstaCorreindo)        _service.Detener();
+                if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
+            };
         }
     }
 }

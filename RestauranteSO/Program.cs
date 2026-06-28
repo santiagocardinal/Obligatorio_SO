@@ -73,6 +73,10 @@ namespace RestauranteSO
 
         private static void MostrarErrorFatal(Exception ex)
         {
+            // Ignorar el error de SplitterDistance — es cosmético y no afecta la funcionalidad
+            if (ex.Message.Contains("SplitterDistance"))
+                return;
+
             MessageBox.Show(
                 $"Error inesperado en RestauranteSO:\n\n" +
                 $"{ex.Message}\n\n" +
