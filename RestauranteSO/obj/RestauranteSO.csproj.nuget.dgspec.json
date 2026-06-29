@@ -1,30 +1,30 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\santi\\obli\\RestauranteSO\\RestauranteSO.csproj": {}
+    "C:\\Users\\santi\\anterior1\\RestauranteSO\\RestauranteSO.csproj": {}
   },
   "projects": {
-    "C:\\Users\\santi\\obli\\RestauranteSO\\RestauranteSO.csproj": {
+    "C:\\Users\\santi\\anterior1\\RestauranteSO\\RestauranteSO.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\santi\\obli\\RestauranteSO\\RestauranteSO.csproj",
+        "projectUniqueName": "C:\\Users\\santi\\anterior1\\RestauranteSO\\RestauranteSO.csproj",
         "projectName": "RestauranteSO",
-        "projectPath": "C:\\Users\\santi\\obli\\RestauranteSO\\RestauranteSO.csproj",
+        "projectPath": "C:\\Users\\santi\\anterior1\\RestauranteSO\\RestauranteSO.csproj",
         "packagesPath": "C:\\Users\\santi\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\santi\\obli\\RestauranteSO\\obj\\",
+        "outputPath": "C:\\Users\\santi\\anterior1\\RestauranteSO\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\santi\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net9.0-windows"
+          "net8.0-windows"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net9.0-windows7.0": {
-            "targetAlias": "net9.0-windows",
+          "net8.0-windows7.0": {
+            "targetAlias": "net8.0-windows",
             "projectReferences": {}
           }
         },
@@ -41,8 +41,8 @@
         "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
-        "net9.0-windows7.0": {
-          "targetAlias": "net9.0-windows",
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
           "dependencies": {
             "Microsoft.Extensions.DependencyInjection": {
               "target": "Package",

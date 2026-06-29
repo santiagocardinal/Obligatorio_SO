@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "lbGJcUDwYwk=",
+  "dgSpecHash": "l2jgqGAeIZ0=",
   "success": true,
-  "projectFilePath": "C:\\Users\\santi\\obli\\RestauranteSO\\RestauranteSO.csproj",
+  "projectFilePath": "C:\\Users\\santi\\anterior1\\RestauranteSO\\RestauranteSO.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\santi\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\8.0.0\\microsoft.extensions.dependencyinjection.8.0.0.nupkg.sha512",
     "C:\\Users\\santi\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.0\\microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512"
