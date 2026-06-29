@@ -62,6 +62,12 @@ namespace RestauranteSO.Presentation.Forms
 
         private System.Windows.Forms.Timer _timerUI = null!;
 
+        // ─── FUENTES LOCALES — evita Font.ToLogFont crash ─────────────────────
+        private static Font F(float size, FontStyle style = FontStyle.Regular)
+            => new("Segoe UI", size, style);
+        private static Font FMono(float size, FontStyle style = FontStyle.Regular)
+            => new("Consolas", size, style);
+
         public event EventHandler<bool>? SimulacionCambiada;
 
         public FrmProductorConsumidor(
@@ -79,13 +85,13 @@ namespace RestauranteSO.Presentation.Forms
         private void InitializeComponent()
         {
             SuspendLayout();
-            Text          = "🍽 Productor — Consumidor | RestauranteSO";
+            Text          = "🔄 Productor — Consumidor | RestaurantOS";
             WindowState   = FormWindowState.Maximized;
             MinimumSize   = new Size(1200, 750);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor     = ColorConstants.FondoPrincipal;
             ForeColor     = ColorConstants.TextoPrincipal;
-            Font          = AppTheme.FuenteLabel;
+            // Sin Font = AppTheme.X — se asigna por control
 
             ConstruirHeader();
             ConstruirToolbar();
@@ -107,7 +113,7 @@ namespace RestauranteSO.Presentation.Forms
             _panelHeader = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 64,
+                Height    = 68,
                 BackColor = ColorConstants.FondoSuperior
             };
             _panelHeader.Paint += (_, e) =>
@@ -125,17 +131,18 @@ namespace RestauranteSO.Presentation.Forms
                 BackColor   = ColorConstants.FondoSuperior,
                 Padding     = new Padding(8, 0, 8, 0)
             };
-            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180f));
-            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,  100f));
             tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 190f));
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,  100f));
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200f));
             tbl.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
             _btnVolver = new Button
             {
-                Text   = "⬅ Volver al Inicio",
-                Width  = 160,
-                Height = 40,
-                Location = new Point(8, 12)
+                Text     = "⬅ Volver al Inicio",
+                Width    = 168,
+                Height   = 44,
+                Location = new Point(8, 12),
+                Font     = F(11f, FontStyle.Bold)
             };
             AppTheme.AplicarABotonVolver(_btnVolver);
             _btnVolver.Click += (_, _) => VolverAlDashboard();
@@ -149,8 +156,8 @@ namespace RestauranteSO.Presentation.Forms
 
             _lblTitulo = new Label
             {
-                Text      = "🍽  Simulación Productor — Consumidor",
-                Font      = AppTheme.FuenteTitulo,
+                Text      = "🔄  Simulación Productor — Consumidor",
+                Font      = F(18f, FontStyle.Bold),
                 ForeColor = ColorConstants.TextoPrincipal,
                 BackColor = ColorConstants.FondoSuperior,
                 Dock      = DockStyle.Fill,
@@ -162,7 +169,7 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Text        = "● Detenida",
                 ColorAcento = ColorConstants.TextoHint,
-                Size        = new Size(160, 32),
+                Size        = new Size(170, 36),
                 Location    = new Point(8, 16)
             };
             var panelBadge = new Panel
@@ -173,7 +180,7 @@ namespace RestauranteSO.Presentation.Forms
             panelBadge.Controls.Add(_badgeEstado);
             panelBadge.Resize += (_, _) =>
                 _badgeEstado.Location =
-                    new Point(panelBadge.Width - 168, 16);
+                    new Point(panelBadge.Width - 178, 16);
 
             tbl.Controls.Add(panelVolver, 0, 0);
             tbl.Controls.Add(_lblTitulo,  1, 0);
@@ -189,7 +196,7 @@ namespace RestauranteSO.Presentation.Forms
             _panelToolbar = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 60,
+                Height    = 64,
                 BackColor = ColorConstants.FondoPanel
             };
             _panelToolbar.Paint += (_, e) =>
@@ -205,12 +212,12 @@ namespace RestauranteSO.Presentation.Forms
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents  = false,
                 BackColor     = ColorConstants.FondoPanel,
-                Padding       = new Padding(8, 8, 8, 8)
+                Padding       = new Padding(8, 10, 8, 10)
             };
 
-            _btnIniciar         = CrearBtn("▶  Iniciar",   140, true,  false);
-            _btnPausar          = CrearBtn("⏸  Pausar",    130, false, false);
-            _btnDetener         = CrearBtn("⏹  Detener",   130, false, false);
+            _btnIniciar         = CrearBtn("▶  Iniciar",   150, true,  false);
+            _btnPausar          = CrearBtn("⏸  Pausar",    140, false, false);
+            _btnDetener         = CrearBtn("⏹  Detener",   140, false, false);
 
             var sep1 = new Panel
             {
@@ -219,9 +226,9 @@ namespace RestauranteSO.Presentation.Forms
                 Margin    = new Padding(8, 0, 8, 0)
             };
 
-            _btnAgregarCliente  = CrearBtn("+ Cliente",    120, false, false);
-            _btnAgregarCocinero = CrearBtn("+ Cocinero",   130, false, false);
-            _btnVaciarCola      = CrearBtn("🗑 Cola",       110, false, false);
+            _btnAgregarCliente  = CrearBtn("+ Cliente",    130, false, false);
+            _btnAgregarCocinero = CrearBtn("+ Cocinero",   140, false, false);
+            _btnVaciarCola      = CrearBtn("🗑 Cola",       120, false, false);
 
             var sep2 = new Panel
             {
@@ -233,11 +240,11 @@ namespace RestauranteSO.Presentation.Forms
             var lblVelTit = new Label
             {
                 Text      = "Velocidad:",
-                Font      = AppTheme.FuenteSmallBold,
+                Font      = F(10f, FontStyle.Bold),
                 ForeColor = ColorConstants.TextoHint,
                 BackColor = ColorConstants.FondoPanel,
                 AutoSize  = false,
-                Size      = new Size(75, 44),
+                Size      = new Size(80, 44),
                 TextAlign = ContentAlignment.MiddleRight,
                 Margin    = new Padding(0)
             };
@@ -245,11 +252,11 @@ namespace RestauranteSO.Presentation.Forms
             _lblVelProd = new Label
             {
                 Text      = "Prod 5x",
-                Font      = AppTheme.FuenteSmall,
+                Font      = F(10f),
                 ForeColor = ColorConstants.TarjetaProductor,
                 BackColor = ColorConstants.FondoPanel,
                 AutoSize  = false,
-                Size      = new Size(52, 22),
+                Size      = new Size(56, 22),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Margin    = new Padding(4, 0, 0, 0)
             };
@@ -265,11 +272,11 @@ namespace RestauranteSO.Presentation.Forms
             _lblVelCons = new Label
             {
                 Text      = "Coc 5x",
-                Font      = AppTheme.FuenteSmall,
+                Font      = F(10f),
                 ForeColor = ColorConstants.AcentoSecundario,
                 BackColor = ColorConstants.FondoPanel,
                 AutoSize  = false,
-                Size      = new Size(52, 22),
+                Size      = new Size(56, 22),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Margin    = new Padding(4, 0, 0, 0)
             };
@@ -284,22 +291,22 @@ namespace RestauranteSO.Presentation.Forms
 
             var panelVel = new Panel
             {
-                Size      = new Size(280, 44),
+                Size      = new Size(290, 44),
                 BackColor = ColorConstants.FondoPanel,
                 Margin    = new Padding(0)
             };
             _lblVelProd.Location   = new Point(0,  2);
-            _trackVelProd.Location = new Point(56, 0);
+            _trackVelProd.Location = new Point(60, 0);
             _lblVelCons.Location   = new Point(0,  24);
-            _trackVelCons.Location = new Point(56, 22);
+            _trackVelCons.Location = new Point(60, 22);
             panelVel.Controls.AddRange(new Control[]
                 { _lblVelProd, _trackVelProd, _lblVelCons, _trackVelCons });
 
             _btnActivarAtaque = new Button
             {
                 Text      = "⚡ Activar Ataque",
-                Size      = new Size(160, 44),
-                Font      = AppTheme.FuenteBoton,
+                Size      = new Size(170, 44),
+                Font      = F(11f, FontStyle.Bold),
                 BackColor = ColorConstants.AlertaAtaque,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -327,7 +334,7 @@ namespace RestauranteSO.Presentation.Forms
             _panelStats = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 52,
+                Height    = 56,
                 BackColor = Color.FromArgb(22, 22, 34)
             };
 
@@ -362,7 +369,7 @@ namespace RestauranteSO.Presentation.Forms
             _panelAtaque = new Panel
             {
                 Dock      = DockStyle.Bottom,
-                Height    = 64,
+                Height    = 68,
                 BackColor = ColorConstants.FondoAtaque,
                 Visible   = false
             };
@@ -392,7 +399,7 @@ namespace RestauranteSO.Presentation.Forms
             var lblTit = new Label
             {
                 Text      = "⚡ ATAQUE ACTIVO: Inyección de Pedidos en cola",
-                Font      = AppTheme.FuenteLabelBold,
+                Font      = F(11f, FontStyle.Bold),
                 ForeColor = ColorConstants.AlertaAtaque,
                 BackColor = ColorConstants.FondoAtaque,
                 AutoSize  = true,
@@ -402,11 +409,11 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Text      = "Un falso técnico instaló un agente malicioso. " +
                              "Pedidos duplicados, eliminados y alterados.",
-                Font      = AppTheme.FuenteSmall,
+                Font      = F(10f),
                 ForeColor = ColorConstants.TextoSecundario,
                 BackColor = ColorConstants.FondoAtaque,
                 AutoSize  = true,
-                Location  = new Point(0, 32)
+                Location  = new Point(0, 34)
             };
             panelTexto.Controls.AddRange(new Control[] { lblTit, lblDesc });
 
@@ -414,7 +421,7 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Text   = "🛡 Ver Políticas de Prevención",
                 Dock   = DockStyle.Fill,
-                Font   = AppTheme.FuenteBoton,
+                Font   = F(11f, FontStyle.Bold),
                 Margin = new Padding(8, 10, 0, 10)
             };
             AppTheme.AplicarABotonSeguridad(_btnVerPoliticas);
@@ -430,21 +437,27 @@ namespace RestauranteSO.Presentation.Forms
 
         private void ConstruirStatus()
         {
-            _status = new StatusStrip();
-            AppTheme.AplicarAStatusStrip(_status);
+            _status = new StatusStrip
+            {
+                BackColor  = ColorConstants.FondoSuperior,
+                ForeColor  = ColorConstants.TextoSecundario,
+                SizingGrip = false,
+                Padding    = new Padding(10, 0, 10, 0),
+                RenderMode = ToolStripRenderMode.Professional
+            };
 
             _lblStatus = new ToolStripStatusLabel
             {
                 Text      = "Listo — presione Iniciar",
                 Spring    = true,
                 ForeColor = ColorConstants.TextoSecundario,
-                Font      = AppTheme.FuenteSmall
+                Font      = FMono(10f)
             };
             _lblCola = new ToolStripStatusLabel
             {
                 Text      = "Cola: 0/15",
                 ForeColor = ColorConstants.AcentoPrincipal,
-                Font      = new Font("Consolas", 9f, FontStyle.Bold)
+                Font      = FMono(10f, FontStyle.Bold)
             };
 
             _status.Items.AddRange(
@@ -464,9 +477,9 @@ namespace RestauranteSO.Presentation.Forms
 
             var panelIzq = new Panel
             {
-                Dock       = DockStyle.Left,
-                BackColor  = ColorConstants.FondoPrincipal,
-                Padding    = new Padding(8)
+                Dock      = DockStyle.Left,
+                BackColor = ColorConstants.FondoPrincipal,
+                Padding   = new Padding(8)
             };
 
             var panelDerSup = new Panel
@@ -489,10 +502,10 @@ namespace RestauranteSO.Presentation.Forms
                 panelIzq.Width    = (int)(panelCuerpo.Width * 0.60);
                 panelDerSup.Width = (int)(panelCuerpo.Width * 0.20);
             }
-            panelCuerpo.Resize += (_, _) => redistribuir();
-            Shown             += (_, _) => redistribuir();
-            Resize            += (_, _) => redistribuir();
 
+            panelCuerpo.Resize += (_, _) => redistribuir();
+            Shown              += (_, _) => redistribuir();
+            Resize             += (_, _) => redistribuir();
 
             ConstruirKanban(panelIzq);
             ConstruirPanelSemaforos(panelDerSup);
@@ -505,17 +518,7 @@ namespace RestauranteSO.Presentation.Forms
             panelCuerpo.Controls.Add(panelDerSup);
             panelCuerpo.Controls.Add(panelIzq);
             Controls.Add(panelCuerpo);
-            Shown += (_, _) =>
-            {
-                if (panelCuerpo.Width > 100)
-                {
-                    panelIzq.Width    = (int)(panelCuerpo.Width * 0.60);
-                    panelDerSup.Width = (int)(panelCuerpo.Width * 0.20);
-                }
-            };
         }
-
-        // ── firma Panel (no SplitterPanel) ───────────────────────────────────
 
         private void ConstruirKanban(Panel panel)
         {
@@ -567,7 +570,7 @@ namespace RestauranteSO.Presentation.Forms
             var header = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 40,
+                Height    = 44,
                 BackColor = Color.FromArgb(40, color.R, color.G, color.B)
             };
             header.Paint += (_, e) =>
@@ -580,7 +583,7 @@ namespace RestauranteSO.Presentation.Forms
             var lbl = new Label
             {
                 Text      = titulo,
-                Font      = AppTheme.FuenteLabelBold,
+                Font      = F(11f, FontStyle.Bold),
                 ForeColor = color,
                 BackColor = Color.FromArgb(40, color.R, color.G, color.B),
                 Dock      = DockStyle.Fill,
@@ -599,17 +602,15 @@ namespace RestauranteSO.Presentation.Forms
             var grid = new DataGridView();
             AppTheme.AplicarADataGrid(grid);
             grid.Columns.Add(new DataGridViewTextBoxColumn
-                { Name = "Num",  HeaderText = "#",       Width = 42, FillWeight = 12 });
+                { Name = "Num",  HeaderText = "#",       Width = 44, FillWeight = 12 });
             grid.Columns.Add(new DataGridViewTextBoxColumn
                 { Name = "Desc", HeaderText = "Plato",   FillWeight = 55 });
             grid.Columns.Add(new DataGridViewTextBoxColumn
-                { Name = "Mesa", HeaderText = "Mesa",    Width = 44, FillWeight = 13 });
+                { Name = "Mesa", HeaderText = "Mesa",    Width = 48, FillWeight = 13 });
             grid.Columns.Add(new DataGridViewTextBoxColumn
                 { Name = "Cli",  HeaderText = "Cliente", FillWeight = 20 });
             return grid;
         }
-
-        // ── firma Panel (no SplitterPanel) ───────────────────────────────────
 
         private void ConstruirPanelSemaforos(Panel panel)
         {
@@ -624,11 +625,11 @@ namespace RestauranteSO.Presentation.Forms
             var lblSem = new Label
             {
                 Text      = "🔒 Primitivas de Sincronización",
-                Font      = AppTheme.FuenteLabelBold,
+                Font      = F(11f, FontStyle.Bold),
                 ForeColor = ColorConstants.TarjetaProductor,
                 BackColor = ColorConstants.FondoLateral,
                 Dock      = DockStyle.Top,
-                Height    = 28,
+                Height    = 32,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding   = new Padding(4, 0, 0, 0)
             };
@@ -636,16 +637,16 @@ namespace RestauranteSO.Presentation.Forms
             var panelViz = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 225,
+                Height    = 230,
                 BackColor = ColorConstants.FondoPanel
             };
 
             _vizSemEspacios = new SemaphoreVisualizer
-                { Location = new Point(4,   4), Height = 68 };
+                { Location = new Point(4,   4), Height = 72 };
             _vizSemItems = new SemaphoreVisualizer
-                { Location = new Point(4,  76), Height = 68 };
+                { Location = new Point(4,  80), Height = 72 };
             _vizCola = new SemaphoreVisualizer
-                { Location = new Point(4, 148), Height = 68 };
+                { Location = new Point(4, 156), Height = 72 };
 
             panelViz.Resize += (_, _) =>
             {
@@ -667,11 +668,11 @@ namespace RestauranteSO.Presentation.Forms
             var lblProd = new Label
             {
                 Text      = "👥 Clientes (Productores)",
-                Font      = AppTheme.FuenteLabelBold,
+                Font      = F(11f, FontStyle.Bold),
                 ForeColor = ColorConstants.TarjetaProductor,
                 BackColor = ColorConstants.FondoLateral,
                 Dock      = DockStyle.Top,
-                Height    = 28,
+                Height    = 32,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding   = new Padding(4, 0, 0, 0)
             };
@@ -679,7 +680,7 @@ namespace RestauranteSO.Presentation.Forms
             _flowProductores = new FlowLayoutPanel
             {
                 Dock          = DockStyle.Top,
-                Height        = 110,
+                Height        = 120,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents  = false,
                 AutoScroll    = true,
@@ -690,11 +691,11 @@ namespace RestauranteSO.Presentation.Forms
             var lblCoc = new Label
             {
                 Text      = "👨‍🍳 Cocineros (Consumidores)",
-                Font      = AppTheme.FuenteLabelBold,
+                Font      = F(11f, FontStyle.Bold),
                 ForeColor = ColorConstants.AcentoSecundario,
                 BackColor = ColorConstants.FondoLateral,
                 Dock      = DockStyle.Top,
-                Height    = 28,
+                Height    = 32,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding   = new Padding(4, 0, 0, 0)
             };
@@ -702,7 +703,7 @@ namespace RestauranteSO.Presentation.Forms
             _flowConsumidores = new FlowLayoutPanel
             {
                 Dock          = DockStyle.Top,
-                Height        = 160,
+                Height        = 170,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents  = false,
                 AutoScroll    = true,
@@ -1058,6 +1059,7 @@ namespace RestauranteSO.Presentation.Forms
                 Text   = texto,
                 Width  = ancho,
                 Height = 44,
+                Font   = new Font("Segoe UI", 11f, FontStyle.Bold),
                 Margin = new Padding(4, 0, 4, 0)
             };
             if (ataque)        AppTheme.AplicarABotonAtaque(btn);
@@ -1071,12 +1073,12 @@ namespace RestauranteSO.Presentation.Forms
             return new Label
             {
                 Text      = texto,
-                Font      = AppTheme.FuenteLabelBold,
+                Font      = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = color,
                 BackColor = Color.FromArgb(22, 22, 34),
                 AutoSize  = false,
-                Height    = 52,
-                Width     = 200,
+                Height    = 56,
+                Width     = 210,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Margin    = new Padding(16, 0, 16, 0)
             };

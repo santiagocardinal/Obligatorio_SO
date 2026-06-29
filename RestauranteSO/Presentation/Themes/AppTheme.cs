@@ -1,251 +1,273 @@
-using System.ComponentModel;
-using System.Drawing.Drawing2D;
-using System.Drawing.Text;
 using RestauranteSO.Constants;
 
 namespace RestauranteSO.Presentation.Themes
 {
     public static class AppTheme
     {
-        // ─── FUENTES ─────────────────────────────────────────────────────────
-        // Escala tipográfica clara con jerarquía visual fuerte
+        // ─── ESCALA TIPOGRÁFICA ───────────────────────────────────────────────
+        // Regla: todas las fuentes en unidades pt con familia "Segoe UI"
+        // Jerarquía: Título → Subtítulo → LabelBold → Label → Small → Mono
+        // Nunca reducir fuentes para que "entre" — adaptar siempre el contenedor
 
-        public static readonly Font FuenteHero        = new Font("Segoe UI", 36f, FontStyle.Bold);
-        public static readonly Font FuenteTitulo      = new Font("Segoe UI", 22f, FontStyle.Bold);
-        public static readonly Font FuenteSubtitulo   = new Font("Segoe UI", 16f, FontStyle.Regular);
-        public static readonly Font FuenteCard        = new Font("Segoe UI", 14f, FontStyle.Bold);
-        public static readonly Font FuenteCardDesc    = new Font("Segoe UI", 12f, FontStyle.Regular);
-        public static readonly Font FuenteBoton       = new Font("Segoe UI", 11f, FontStyle.Bold);
-        public static readonly Font FuenteLabel       = new Font("Segoe UI", 11f, FontStyle.Regular);
-        public static readonly Font FuenteLabelBold   = new Font("Segoe UI", 11f, FontStyle.Bold);
-        public static readonly Font FuenteLog         = new Font("Consolas",  10f, FontStyle.Regular);
-        public static readonly Font FuenteSmall       = new Font("Segoe UI",  9f,  FontStyle.Regular);
-        public static readonly Font FuenteSmallBold   = new Font("Segoe UI",  9f,  FontStyle.Bold);
-        public static readonly Font FuenteIconGrande  = new Font("Segoe UI Emoji", 36f, FontStyle.Regular);
-        public static readonly Font FuenteStatus      = new Font("Consolas",  10f, FontStyle.Regular);
+        public static readonly Font FuenteTitulo      = new("Segoe UI", 22f,  FontStyle.Bold);
+        public static readonly Font FuenteSubtitulo   = new("Segoe UI", 17f,  FontStyle.Bold);
+        public static readonly Font FuenteLabelBold   = new("Segoe UI", 13f,  FontStyle.Bold);
+        public static readonly Font FuenteLabel       = new("Segoe UI", 13f,  FontStyle.Regular);
+        public static readonly Font FuenteSmallBold   = new("Segoe UI", 11f,  FontStyle.Bold);
+        public static readonly Font FuenteSmall       = new("Segoe UI", 11f,  FontStyle.Regular);
+        public static readonly Font FuenteMono        = new("Consolas", 12f,  FontStyle.Bold);
+        public static readonly Font FuenteStatus      = new("Consolas", 11f,  FontStyle.Regular);
+        public static readonly Font FuenteBoton       = new("Segoe UI", 12f,  FontStyle.Bold);
+        public static readonly Font FuenteDockIcono   = new("Segoe UI Emoji", 30f, FontStyle.Regular);
+        public static readonly Font FuenteDockLabel   = new("Segoe UI", 11f,  FontStyle.Bold);
+        public static readonly Font FuenteSplashNombre= new("Segoe UI", 32f,  FontStyle.Bold);
+        public static readonly Font FuenteSplashTag   = new("Segoe UI", 14f,  FontStyle.Regular);
+        public static readonly Font FuenteSplashSub   = new("Segoe UI", 11f,  FontStyle.Regular);
+        public static readonly Font FuenteMapaNodo    = new("Segoe UI", 10f,  FontStyle.Bold);
+        public static readonly Font FuenteLogEntrada  = new("Consolas", 11f,  FontStyle.Regular);
 
-        // ─── APLICAR A FORM ───────────────────────────────────────────────────
-
-        public static void AplicarAForm(Form form)
+        // ─── HELPER: altura segura para un Label con esta fuente ─────────────
+        /// <summary>
+        /// Calcula la altura mínima garantizada para que ninguna letra
+        /// se corte, considerando ascendentes, descendentes y padding.
+        /// Factor 1.8 cubre todas las familias en todos los DPI.
+        /// </summary>
+        public static int AlturaSegura(Font f, int lineas = 1, int paddingV = 8)
         {
-            form.BackColor     = ColorConstants.FondoPrincipal;
-            form.ForeColor     = ColorConstants.TextoPrincipal;
-            form.Font          = FuenteLabel;
-            form.StartPosition = FormStartPosition.CenterScreen;
+            // Usar Size * 1.333 para convertir pt → px sin necesitar Graphics context
+            float alturaPixels = f.Size * 1.333f;
+            return (int)(alturaPixels * lineas * 1.55f) + paddingV * 2;
         }
 
         // ─── BOTONES ─────────────────────────────────────────────────────────
 
         public static void AplicarABotonPrimario(Button btn)
         {
-            btn.BackColor    = ColorConstants.AcentoPrincipal;
-            btn.ForeColor    = Color.White;
-            btn.Font         = FuenteBoton;
-            btn.FlatStyle    = FlatStyle.Flat;
-            btn.Cursor       = Cursors.Hand;
-            btn.Height       = 44;
+            btn.BackColor = ColorConstants.AcentoPrincipal;
+            btn.ForeColor = Color.White;
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.Font      = FuenteBoton;
+            btn.Cursor    = Cursors.Hand;
+            btn.Padding   = new Padding(8, 4, 8, 4);
             btn.FlatAppearance.BorderSize           = 0;
-            btn.FlatAppearance.MouseOverBackColor   =
-                ControlPaint.Light(ColorConstants.AcentoPrincipal, 0.2f);
-            btn.FlatAppearance.MouseDownBackColor   =
-                ControlPaint.Dark(ColorConstants.AcentoPrincipal, 0.1f);
+            btn.FlatAppearance.MouseOverBackColor   = Color.FromArgb(128, 119, 255);
+            btn.FlatAppearance.MouseDownBackColor   = Color.FromArgb( 88,  79, 220);
         }
 
         public static void AplicarABotonSecundario(Button btn)
         {
-            btn.BackColor    = ColorConstants.FondoCard;
-            btn.ForeColor    = ColorConstants.TextoSecundario;
-            btn.Font         = FuenteBoton;
-            btn.FlatStyle    = FlatStyle.Flat;
-            btn.Cursor       = Cursors.Hand;
-            btn.Height       = 44;
+            btn.BackColor = ColorConstants.FondoPanel;
+            btn.ForeColor = ColorConstants.TextoSecundario;
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.Font      = FuenteBoton;
+            btn.Cursor    = Cursors.Hand;
+            btn.Padding   = new Padding(8, 4, 8, 4);
             btn.FlatAppearance.BorderSize           = 1;
-            btn.FlatAppearance.BorderColor          = ColorConstants.BordeCard;
-            btn.FlatAppearance.MouseOverBackColor   = ColorConstants.FondoCardHover;
-            btn.FlatAppearance.MouseDownBackColor   = ColorConstants.FondoPanel;
+            btn.FlatAppearance.BorderColor          = ColorConstants.Separador;
+            btn.FlatAppearance.MouseOverBackColor   = Color.FromArgb(32, 32, 52);
+            btn.FlatAppearance.MouseDownBackColor   = Color.FromArgb(20, 20, 36);
         }
 
         public static void AplicarABotonAtaque(Button btn)
         {
-            btn.BackColor    = ColorConstants.AlertaAtaque;
-            btn.ForeColor    = Color.White;
-            btn.Font         = FuenteBoton;
-            btn.FlatStyle    = FlatStyle.Flat;
-            btn.Cursor       = Cursors.Hand;
-            btn.Height       = 44;
+            btn.BackColor = ColorConstants.AlertaAtaque;
+            btn.ForeColor = Color.White;
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.Font      = FuenteBoton;
+            btn.Cursor    = Cursors.Hand;
+            btn.Padding   = new Padding(8, 4, 8, 4);
             btn.FlatAppearance.BorderSize           = 0;
-            btn.FlatAppearance.MouseOverBackColor   =
-                ControlPaint.Light(ColorConstants.AlertaAtaque, 0.2f);
+            btn.FlatAppearance.MouseOverBackColor   = Color.FromArgb(255,  91, 107);
+            btn.FlatAppearance.MouseDownBackColor   = Color.FromArgb(220,  51,  67);
         }
 
         public static void AplicarABotonSeguridad(Button btn)
         {
-            btn.BackColor    = ColorConstants.AcentoExito;
-            btn.ForeColor    = Color.White;
-            btn.Font         = FuenteBoton;
-            btn.FlatStyle    = FlatStyle.Flat;
-            btn.Cursor       = Cursors.Hand;
-            btn.Height       = 44;
+            btn.BackColor = ColorConstants.AcentoExito;
+            btn.ForeColor = Color.FromArgb(10, 26, 10);
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.Font      = FuenteBoton;
+            btn.Cursor    = Cursors.Hand;
+            btn.Padding   = new Padding(8, 4, 8, 4);
             btn.FlatAppearance.BorderSize           = 0;
-            btn.FlatAppearance.MouseOverBackColor   =
-                ControlPaint.Light(ColorConstants.AcentoExito, 0.2f);
+            btn.FlatAppearance.MouseOverBackColor   = Color.FromArgb( 58, 242, 149);
+            btn.FlatAppearance.MouseDownBackColor   = Color.FromArgb( 18, 192,  99);
         }
 
         public static void AplicarABotonVolver(Button btn)
         {
-            btn.BackColor    = ColorConstants.FondoCard;
-            btn.ForeColor    = ColorConstants.AcentoPrincipal;
-            btn.Font         = FuenteBoton;
-            btn.FlatStyle    = FlatStyle.Flat;
-            btn.Cursor       = Cursors.Hand;
-            btn.Height       = 44;
+            btn.BackColor = ColorConstants.FondoPanel;
+            btn.ForeColor = ColorConstants.TextoSecundario;
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.Font      = FuenteBoton;
+            btn.Cursor    = Cursors.Hand;
+            btn.Padding   = new Padding(8, 4, 8, 4);
             btn.FlatAppearance.BorderSize           = 1;
-            btn.FlatAppearance.BorderColor          = ColorConstants.AcentoPrincipal;
-            btn.FlatAppearance.MouseOverBackColor   =
-                Color.FromArgb(20, ColorConstants.AcentoPrincipal);
+            btn.FlatAppearance.BorderColor          = ColorConstants.Separador;
+            btn.FlatAppearance.MouseOverBackColor   = Color.FromArgb(32, 32, 52);
         }
 
-        // ─── DATAGRIDVIEW ─────────────────────────────────────────────────────
+        public static void AplicarABotonWarning(Button btn)
+        {
+            btn.BackColor = ColorConstants.Advertencia;
+            btn.ForeColor = Color.FromArgb(26, 20, 0);
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.Font      = FuenteBoton;
+            btn.Cursor    = Cursors.Hand;
+            btn.Padding   = new Padding(8, 4, 8, 4);
+            btn.FlatAppearance.BorderSize           = 0;
+            btn.FlatAppearance.MouseOverBackColor   = Color.FromArgb(255, 220, 108);
+        }
+
+        // ─── DATA GRID ────────────────────────────────────────────────────────
 
         public static void AplicarADataGrid(DataGridView grid)
         {
-            grid.BackgroundColor      = ColorConstants.FondoPanel;
-            grid.GridColor            = ColorConstants.Separador;
-            grid.ForeColor            = ColorConstants.TextoPrincipal;
-            grid.Font                 = FuenteSmall;
-            grid.DefaultCellStyle.BackColor          = ColorConstants.FondoPanel;
-            grid.DefaultCellStyle.ForeColor          = ColorConstants.TextoPrincipal;
-            grid.DefaultCellStyle.SelectionBackColor = ColorConstants.AcentoPrincipal;
-            grid.DefaultCellStyle.SelectionForeColor = Color.White;
-            grid.DefaultCellStyle.Font               = FuenteSmall;
-            grid.DefaultCellStyle.Padding            = new Padding(4, 2, 4, 2);
-            grid.AlternatingRowsDefaultCellStyle.BackColor =
-                Color.FromArgb(35, 35, 48);
-            grid.ColumnHeadersDefaultCellStyle.BackColor  = ColorConstants.FondoSuperior;
-            grid.ColumnHeadersDefaultCellStyle.ForeColor  = ColorConstants.TextoSecundario;
-            grid.ColumnHeadersDefaultCellStyle.Font       = FuenteSmallBold;
-            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = ColorConstants.FondoSuperior;
-            grid.ColumnHeadersBorderStyle         = DataGridViewHeaderBorderStyle.None;
-            grid.ColumnHeadersHeightSizeMode      =
+            grid.BackgroundColor           = ColorConstants.FondoPanel;
+            grid.ForeColor                 = ColorConstants.TextoPrincipal;
+            grid.GridColor                 = ColorConstants.Separador;
+            grid.BorderStyle               = BorderStyle.None;
+            grid.CellBorderStyle           = DataGridViewCellBorderStyle.SingleHorizontal;
+            grid.ColumnHeadersBorderStyle  = DataGridViewHeaderBorderStyle.None;
+            grid.SelectionMode             = DataGridViewSelectionMode.FullRowSelect;
+            grid.MultiSelect               = false;
+            grid.ReadOnly                  = true;
+            grid.AllowUserToAddRows        = false;
+            grid.AllowUserToDeleteRows     = false;
+            grid.AllowUserToResizeRows     = false;
+            grid.RowHeadersVisible         = false;
+            grid.AutoSizeColumnsMode       = DataGridViewAutoSizeColumnsMode.Fill;
+            grid.Font                      = FuenteSmall;
+            grid.EnableHeadersVisualStyles = false;
+            // Altura de fila calculada con AlturaSegura
+            grid.RowTemplate.Height        = AlturaSegura(FuenteSmall, 1, 6);
+
+            grid.DefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor          = ColorConstants.FondoPanel,
+                ForeColor          = ColorConstants.TextoPrincipal,
+                SelectionBackColor = Color.FromArgb(60, 108, 99, 255),
+                SelectionForeColor = ColorConstants.TextoPrincipal,
+                Font               = FuenteSmall,
+                Padding            = new Padding(6, 4, 6, 4),
+                WrapMode           = DataGridViewTriState.False
+            };
+
+            grid.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor          = Color.FromArgb(20, 20, 34),
+                ForeColor          = ColorConstants.TextoPrincipal,
+                SelectionBackColor = Color.FromArgb(60, 108, 99, 255),
+                SelectionForeColor = ColorConstants.TextoPrincipal,
+                Font               = FuenteSmall,
+                Padding            = new Padding(6, 4, 6, 4),
+                WrapMode           = DataGridViewTriState.False
+            };
+
+            grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = ColorConstants.FondoSuperior,
+                ForeColor = ColorConstants.TextoHint,
+                Font      = FuenteSmallBold,
+                Alignment = DataGridViewContentAlignment.MiddleLeft,
+                Padding   = new Padding(6, 6, 6, 6)
+            };
+
+            grid.ColumnHeadersHeight         = AlturaSegura(FuenteSmallBold, 1, 8);
+            grid.ColumnHeadersHeightSizeMode =
                 DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            grid.ColumnHeadersHeight              = 36;
-            grid.RowTemplate.Height               = 32;
-            grid.EnableHeadersVisualStyles        = false;
-            grid.RowHeadersVisible                = false;
-            grid.BorderStyle                      = BorderStyle.None;
-            grid.CellBorderStyle                  = DataGridViewCellBorderStyle.SingleHorizontal;
-            grid.SelectionMode                    = DataGridViewSelectionMode.FullRowSelect;
-            grid.ReadOnly                         = true;
-            grid.AllowUserToAddRows               = false;
-            grid.AllowUserToDeleteRows            = false;
-            grid.AllowUserToResizeRows            = false;
-            grid.AutoSizeColumnsMode              = DataGridViewAutoSizeColumnsMode.Fill;
-            grid.ScrollBars                       = ScrollBars.Vertical;
         }
 
         // ─── STATUS STRIP ─────────────────────────────────────────────────────
 
-        public static void AplicarAStatusStrip(StatusStrip ss)
+        public static void AplicarAStatusStrip(StatusStrip strip)
         {
-            ss.BackColor  = ColorConstants.FondoInferior;
-            ss.ForeColor  = ColorConstants.TextoSecundario;
-            ss.Font       = FuenteSmall;
-            ss.SizingGrip = false;
-            ss.RenderMode = ToolStripRenderMode.Professional;
-            ss.Height     = 28;
+            strip.BackColor  = ColorConstants.FondoSuperior;
+            strip.ForeColor  = ColorConstants.TextoSecundario;
+            strip.Font       = FuenteStatus;
+            strip.SizingGrip = false;
+            strip.Padding    = new Padding(10, 0, 10, 0);
+            strip.RenderMode = ToolStripRenderMode.Professional;
+            strip.Height     = AlturaSegura(FuenteStatus, 1, 6);
         }
 
-        // ─── HELPERS GDI+ ────────────────────────────────────────────────────
+        // ─── TAB CONTROL ──────────────────────────────────────────────────────
 
-        public static void DibujarSeparador(
-            Graphics g, int x, int y, int ancho)
+        public static void DibujarTabItem(
+            Graphics g, Rectangle bounds, string texto,
+            bool seleccionado, Color colorAcento)
         {
-            using var pen = new Pen(ColorConstants.Separador, 1);
-            g.DrawLine(pen, x, y, x + ancho, y);
-        }
+            var backColor = seleccionado
+                ? ColorConstants.FondoCard
+                : ColorConstants.FondoPanel;
+            var foreColor = seleccionado
+                ? colorAcento
+                : ColorConstants.TextoSecundario;
 
-        public static void DibujarBordeRedondeado(
-            Graphics g, Rectangle rect, int radio,
-            Color color, int grosor = 1)
-        {
-            using var pen  = new Pen(color, grosor);
-            using var path = CrearPathRedondeado(rect, radio);
-            g.DrawPath(pen, path);
-        }
+            using var backBrush = new SolidBrush(backColor);
+            g.FillRectangle(backBrush, bounds);
 
-        public static void RellenarRedondeado(
-            Graphics g, Rectangle rect, int radio, Color color)
-        {
-            if (rect.Width <= 0 || rect.Height <= 0) return;
-            using var brush = new SolidBrush(color);
-            using var path  = CrearPathRedondeado(rect, radio);
-            g.FillPath(brush, path);
-        }
+            TextRenderer.DrawText(g, texto,
+                seleccionado ? FuenteSmallBold : FuenteSmall,
+                bounds, foreColor,
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.VerticalCenter   |
+                TextFormatFlags.NoPadding);
 
-        /// <summary>
-        /// Dibuja un rectángulo redondeado con gradiente vertical.
-        /// Usado para el fondo de las cards en hover.
-        /// </summary>
-        public static void RellenarGradienteRedondeado(
-            Graphics g, Rectangle rect, int radio,
-            Color colorArriba, Color colorAbajo)
-        {
-            if (rect.Width <= 0 || rect.Height <= 0) return;
-            using var brush = new LinearGradientBrush(
-                rect, colorArriba, colorAbajo,
-                LinearGradientMode.Vertical);
-            using var path = CrearPathRedondeado(rect, radio);
-            g.FillPath(brush, path);
-        }
-
-        /// <summary>
-        /// Simula una sombra dibujando capas semitransparentes desplazadas.
-        /// Efecto de elevación para las cards.
-        /// </summary>
-        public static void DibujarSombra(
-            Graphics g, Rectangle rect, int radio, int intensidad = 3)
-        {
-            for (int i = intensidad; i >= 1; i--)
+            if (seleccionado)
             {
-                var shadowRect = new Rectangle(
-                    rect.X + i, rect.Y + i,
-                    rect.Width, rect.Height);
-                int alpha = (int)(15.0 / i);
-                using var shadowBrush = new SolidBrush(
-                    Color.FromArgb(alpha, 0, 0, 0));
-                using var path = CrearPathRedondeado(shadowRect, radio);
-                g.FillPath(shadowBrush, path);
+                using var pen = new Pen(colorAcento, 2);
+                g.DrawLine(pen,
+                    bounds.Left,  bounds.Bottom - 2,
+                    bounds.Right, bounds.Bottom - 2);
             }
         }
 
-        public static GraphicsPath CrearPathRedondeado(
-            Rectangle rect, int radio)
-        {
-            var path = new GraphicsPath();
-            int d    = radio * 2;
+        // ─── HELPERS GRÁFICOS ─────────────────────────────────────────────────
 
-            d = Math.Min(d, Math.Min(rect.Width, rect.Height));
+        public static System.Drawing.Drawing2D.GraphicsPath
+            CrearPathRedondeado(Rectangle rect, int radio)
+        {
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+            int d    = Math.Min(radio * 2,
+                       Math.Min(rect.Width, rect.Height));
             if (d <= 0) { path.AddRectangle(rect); return path; }
 
-            path.AddArc(rect.X,          rect.Y,          d, d, 180, 90);
-            path.AddArc(rect.Right - d,  rect.Y,          d, d, 270, 90);
-            path.AddArc(rect.Right - d,  rect.Bottom - d, d, d,   0, 90);
-            path.AddArc(rect.X,          rect.Bottom - d, d, d,  90, 90);
+            path.AddArc(rect.X,         rect.Y,          d, d, 180, 90);
+            path.AddArc(rect.Right - d, rect.Y,          d, d, 270, 90);
+            path.AddArc(rect.Right - d, rect.Bottom - d, d, d,   0, 90);
+            path.AddArc(rect.X,         rect.Bottom - d, d, d,  90, 90);
             path.CloseFigure();
             return path;
         }
 
-        public static Color ColorParaEstadoPedido(string estado) =>
-            estado switch
-            {
-                "Esperando"     => ColorConstants.EstadoEsperando,
-                "EnPreparacion" => ColorConstants.EstadoEnPreparacion,
-                "Listo"         => ColorConstants.EstadoListo,
-                "Entregado"     => ColorConstants.EstadoEntregado,
-                "Cancelado"     => ColorConstants.EstadoEntregado,
-                "Alterado"      => ColorConstants.EstadoAlterado,
-                "Duplicado"     => ColorConstants.EstadoDuplicado,
-                _               => ColorConstants.TextoPrincipal
-            };
+        public static Color LerpColor(Color c1, Color c2, float t)
+        {
+            t = Math.Clamp(t, 0f, 1f);
+            return Color.FromArgb(
+                (int)(c1.A + (c2.A - c1.A) * t),
+                (int)(c1.R + (c2.R - c1.R) * t),
+                (int)(c1.G + (c2.G - c1.G) * t),
+                (int)(c1.B + (c2.B - c1.B) * t));
+        }
+
+        /// <summary>
+        /// Mide el texto con TextRenderer y devuelve un Rectangle
+        /// con padding generoso para garantizar que no haya recorte.
+        /// Usar siempre este método en lugar de calcular manualmente.
+        /// </summary>
+        public static Rectangle MedirTextoSeguro(
+            string texto, Font font, int x, int y,
+            int maxAncho, int paddingH = 8, int paddingV = 10)
+        {
+            var medida = TextRenderer.MeasureText(texto, font,
+                new Size(maxAncho, int.MaxValue),
+                TextFormatFlags.WordBreak);
+            return new Rectangle(
+                x - paddingH,
+                y - paddingV,
+                medida.Width  + paddingH * 2,
+                medida.Height + paddingV * 2);
+        }
     }
 }

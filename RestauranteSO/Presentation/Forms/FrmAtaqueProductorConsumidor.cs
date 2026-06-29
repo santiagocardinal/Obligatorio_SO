@@ -27,19 +27,18 @@ namespace RestauranteSO.Presentation.Forms
         private void InitializeComponent()
         {
             SuspendLayout();
-            Text          = "⚡ Ataque: Inyección de Pedidos | RestauranteSO";
+            Text          = "⚡ Ataque: Inyección de Pedidos | RestaurantOS";
             WindowState   = FormWindowState.Maximized;
             MinimumSize   = new Size(1200, 750);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor     = ColorConstants.FondoPrincipal;
-            Font          = AppTheme.FuenteLabel;
+            // NO asignar Font del form — evita Font.ToLogFont crash
 
-            // Banner de ataque
             var banner = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 42,
-                BackColor = Color.FromArgb(60, 15, 15)
+                Height    = 48,
+                BackColor = Color.FromArgb(40, 10, 10)
             };
             banner.Paint += (_, e) =>
             {
@@ -48,45 +47,43 @@ namespace RestauranteSO.Presentation.Forms
                     banner.Width, banner.Height - 2);
             };
 
-            var bannerLayout = new TableLayoutPanel
+            var bannerTbl = new TableLayoutPanel
             {
                 Dock        = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount    = 1,
-                BackColor   = Color.FromArgb(60, 15, 15),
-                Padding     = new Padding(12, 0, 12, 0)
+                BackColor   = Color.FromArgb(40, 10, 10),
+                Padding     = new Padding(16, 0, 16, 0)
             };
-            bannerLayout.ColumnStyles.Add(
-                new ColumnStyle(SizeType.Percent, 65f));
-            bannerLayout.ColumnStyles.Add(
-                new ColumnStyle(SizeType.Percent, 35f));
-            bannerLayout.RowStyles.Add(
-                new RowStyle(SizeType.Percent, 100f));
+            bannerTbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65f));
+            bannerTbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35f));
+            bannerTbl.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
-            bannerLayout.Controls.Add(new Label
+            bannerTbl.Controls.Add(new Label
             {
-                Text      = "⚡ MÓDULO DE ATAQUE EDUCATIVO — Ingeniería Social + Inyección en Cola",
-                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
+                Text      = "⚡ MÓDULO EDUCATIVO — Ingeniería Social + Inyección en Cola",
+                Font      = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = ColorConstants.AlertaAtaque,
-                BackColor = Color.FromArgb(60, 15, 15),
+                BackColor = Color.FromArgb(40, 10, 10),
                 Dock      = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize  = false
             }, 0, 0);
 
-            bannerLayout.Controls.Add(new Label
+            bannerTbl.Controls.Add(new Label
             {
                 Text      = "⚠ SIMULACIÓN EDUCATIVA — Ningún ataque real es ejecutado",
-                Font      = AppTheme.FuenteSmall,
+                Font      = new Font("Segoe UI", 10f, FontStyle.Regular),
                 ForeColor = ColorConstants.TextoHint,
-                BackColor = Color.FromArgb(60, 15, 15),
+                BackColor = Color.FromArgb(40, 10, 10),
                 Dock      = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleRight
+                TextAlign = ContentAlignment.MiddleRight,
+                AutoSize  = false
             }, 1, 0);
 
-            banner.Controls.Add(bannerLayout);
+            banner.Controls.Add(bannerTbl);
             Controls.Add(banner);
 
-            // Panel contenedor para el form de simulación
             var contenedor = new Panel
             {
                 Dock      = DockStyle.Fill,
@@ -96,10 +93,9 @@ namespace RestauranteSO.Presentation.Forms
 
             ResumeLayout(true);
 
-            // Al cargar: iniciar simulación y mostrar diálogo de IS
             Load += async (_, _) =>
             {
-                await Task.Delay(500);
+                await Task.Delay(400);
 
                 var frmPC = new FrmProductorConsumidor(
                     _service, _attackService, _logger);
@@ -110,12 +106,10 @@ namespace RestauranteSO.Presentation.Forms
                 contenedor.Controls.Add(frmPC);
                 frmPC.BringToFront();
 
-                // ── NUEVAS ──
                 frmPC.Size = contenedor.Size;
                 contenedor.Resize += (_, _) => frmPC.Size = contenedor.Size;
-                // ────────────
 
-                await Task.Delay(1000);
+                await Task.Delay(800);
                 _service.Iniciar();
 
                 await Task.Delay(2000);
@@ -125,10 +119,11 @@ namespace RestauranteSO.Presentation.Forms
                     "Estimado Encargado:\n\n" +
                     "Soy el Técnico Carlos Martínez de SistemaResto S.A.\n" +
                     "Estoy aquí para instalar la actualización crítica.\n\n" +
-                    "⚠ Si no la instalamos ahora, el sistema puede perder datos.\n\n" +
+                    "⚠ Si no la instalamos ahora, el sistema de pedidos\n" +
+                    "puede perder datos esta noche.\n\n" +
                     "¿Me da acceso al sistema por 5 minutos?",
                     "✓ Sí, adelante",
-                    "✗ No, esperaré autorización");
+                    "✗ No, esperaré autorización escrita");
 
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                     _attackService.ActivarAtaque(AttackType.InyeccionDePedidos);

@@ -27,19 +27,18 @@ namespace RestauranteSO.Presentation.Forms
         private void InitializeComponent()
         {
             SuspendLayout();
-            Text          = "🎣 Ataque: Phishing al Gerente | RestauranteSO";
+            Text          = "🎣 Ataque: Phishing al Gerente | RestaurantOS";
             WindowState   = FormWindowState.Maximized;
             MinimumSize   = new Size(1100, 700);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor     = ColorConstants.FondoPrincipal;
-            Font          = AppTheme.FuenteLabel;
+            // NO asignar Font del form — evita Font.ToLogFont crash
 
-            // Banner de ataque
             var banner = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 42,
-                BackColor = Color.FromArgb(50, 10, 30)
+                Height    = 48,
+                BackColor = Color.FromArgb(30, 8, 22)
             };
             banner.Paint += (_, e) =>
             {
@@ -48,42 +47,41 @@ namespace RestauranteSO.Presentation.Forms
                     banner.Width, banner.Height - 2);
             };
 
-            var bannerLayout = new TableLayoutPanel
+            var bannerTbl = new TableLayoutPanel
             {
                 Dock        = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount    = 1,
-                BackColor   = Color.FromArgb(50, 10, 30),
-                Padding     = new Padding(12, 0, 12, 0)
+                BackColor   = Color.FromArgb(30, 8, 22),
+                Padding     = new Padding(16, 0, 16, 0)
             };
-            bannerLayout.ColumnStyles.Add(
-                new ColumnStyle(SizeType.Percent, 65f));
-            bannerLayout.ColumnStyles.Add(
-                new ColumnStyle(SizeType.Percent, 35f));
-            bannerLayout.RowStyles.Add(
-                new RowStyle(SizeType.Percent, 100f));
+            bannerTbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65f));
+            bannerTbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35f));
+            bannerTbl.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
-            bannerLayout.Controls.Add(new Label
+            bannerTbl.Controls.Add(new Label
             {
-                Text      = "🎣 MÓDULO DE ATAQUE EDUCATIVO — Phishing + Compromiso del Menú",
-                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
+                Text      = "🎣 MÓDULO EDUCATIVO — Phishing + Compromiso del Menú Compartido",
+                Font      = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = ColorConstants.TarjetaAtaque2,
-                BackColor = Color.FromArgb(50, 10, 30),
+                BackColor = Color.FromArgb(30, 8, 22),
                 Dock      = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize  = false
             }, 0, 0);
 
-            bannerLayout.Controls.Add(new Label
+            bannerTbl.Controls.Add(new Label
             {
                 Text      = "⚠ SIMULACIÓN EDUCATIVA — Ningún ataque real es ejecutado",
-                Font      = AppTheme.FuenteSmall,
+                Font      = new Font("Segoe UI", 10f, FontStyle.Regular),
                 ForeColor = ColorConstants.TextoHint,
-                BackColor = Color.FromArgb(50, 10, 30),
+                BackColor = Color.FromArgb(30, 8, 22),
                 Dock      = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleRight
+                TextAlign = ContentAlignment.MiddleRight,
+                AutoSize  = false
             }, 1, 0);
 
-            banner.Controls.Add(bannerLayout);
+            banner.Controls.Add(bannerTbl);
             Controls.Add(banner);
 
             var contenedor = new Panel
@@ -95,9 +93,9 @@ namespace RestauranteSO.Presentation.Forms
 
             ResumeLayout(true);
 
-           Load += async (_, _) =>
+            Load += async (_, _) =>
             {
-                await Task.Delay(500);
+                await Task.Delay(400);
 
                 var frmLE = new FrmLectoresEscritores(
                     _service, _attackService, _logger);
@@ -108,27 +106,26 @@ namespace RestauranteSO.Presentation.Forms
                 contenedor.Controls.Add(frmLE);
                 frmLE.BringToFront();
 
-                // ── ESTAS DOS LÍNEAS SON LAS NUEVAS ──────────────────────────
                 frmLE.Size = contenedor.Size;
                 contenedor.Resize += (_, _) => frmLE.Size = contenedor.Size;
-                // ─────────────────────────────────────────────────────────────
 
-                await Task.Delay(1000);
+                await Task.Delay(800);
                 _service.Iniciar();
 
                 await Task.Delay(3000);
 
                 var dlg = new FrmIngenieriaSocial(
-                    "📧 [BANDEJA] — 1 mensaje nuevo",
+                    "📧 [BANDEJA DE ENTRADA] — 1 mensaje nuevo",
                     "De: noreply@sistema-gestion-restaurante.net\n" +
                     "Para: gerente@restaurantedoncod.com\n" +
-                    "Asunto: ⚠ ACCIÓN REQUERIDA: Verificación obligatoria\n\n" +
+                    "Asunto: ⚠ ACCIÓN REQUERIDA: Verificación de cuenta obligatoria\n\n" +
                     "Estimado/a Gerente,\n\n" +
-                    "Detectamos actividad inusual en su cuenta.\n" +
-                    "Debe verificar sus credenciales en las próximas 2 horas.\n\n" +
-                    "De lo contrario su acceso será suspendido.",
+                    "Hemos detectado actividad inusual en su cuenta del\n" +
+                    "Sistema de Menús. Para proteger su cuenta, debe\n" +
+                    "verificar sus credenciales en las próximas 2 horas.\n\n" +
+                    "De lo contrario su acceso será suspendido temporalmente.",
                     "🔗 Verificar mi cuenta ahora",
-                    "🗑 Mover a Spam");
+                    "🗑 Mover a Spam (correcto ✓)");
 
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                     _attackService.ActivarAtaque(AttackType.PhishingMenuAlterado);

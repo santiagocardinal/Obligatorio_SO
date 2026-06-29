@@ -6,8 +6,6 @@ namespace RestauranteSO.Presentation.Controls
 {
     public sealed class LogViewer : UserControl
     {
-        // ─── CONTROLES (sin readonly) ─────────────────────────────────────────
-
         private RichTextBox _richText    = null!;
         private Panel       _headerPanel = null!;
         private Label       _lblTitulo   = null!;
@@ -16,8 +14,6 @@ namespace RestauranteSO.Presentation.Controls
         private int  _cantidadLineas = 0;
         private bool _autoScroll     = true;
         private const int MaxLineas  = AppConstants.MaxLogsVisibles;
-
-        // ─── CONSTRUCTOR ─────────────────────────────────────────────────────
 
         public LogViewer()
         {
@@ -29,11 +25,10 @@ namespace RestauranteSO.Presentation.Controls
             BackColor = ColorConstants.FondoPanel;
             Padding   = new Padding(0);
 
-            // Header
             _headerPanel = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 32,
+                Height    = 38,
                 BackColor = ColorConstants.FondoSuperior,
                 Padding   = new Padding(8, 0, 4, 0)
             };
@@ -42,10 +37,11 @@ namespace RestauranteSO.Presentation.Controls
             {
                 Text      = "📋 Log de Eventos",
                 ForeColor = ColorConstants.TextoSecundario,
-                Font      = AppTheme.FuenteLabelBold,
+                Font      = new Font("Segoe UI", 11f, FontStyle.Bold),
+                BackColor = ColorConstants.FondoSuperior,
                 Dock      = DockStyle.Left,
                 AutoSize  = false,
-                Width     = 200,
+                Width     = 220,
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
@@ -53,11 +49,11 @@ namespace RestauranteSO.Presentation.Controls
             {
                 Text      = "Limpiar",
                 Dock      = DockStyle.Right,
-                Width     = 65,
-                Font      = AppTheme.FuenteSmall,
+                Width     = 72,
+                Font      = new Font("Segoe UI", 10f, FontStyle.Regular),
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = ColorConstants.TextoHint,
-                BackColor = Color.Transparent,
+                BackColor = ColorConstants.FondoSuperior,
                 Cursor    = Cursors.Hand
             };
             _btnLimpiar.FlatAppearance.BorderSize = 0;
@@ -66,13 +62,12 @@ namespace RestauranteSO.Presentation.Controls
             _headerPanel.Controls.Add(_lblTitulo);
             _headerPanel.Controls.Add(_btnLimpiar);
 
-            // RichTextBox
             _richText = new RichTextBox
             {
                 Dock        = DockStyle.Fill,
                 BackColor   = ColorConstants.FondoPanel,
                 ForeColor   = ColorConstants.TextoPrincipal,
-                Font        = AppTheme.FuenteLog,
+                Font        = new Font("Consolas", 11f, FontStyle.Regular),
                 ReadOnly    = true,
                 BorderStyle = BorderStyle.None,
                 ScrollBars  = RichTextBoxScrollBars.Vertical,
@@ -81,7 +76,7 @@ namespace RestauranteSO.Presentation.Controls
 
             _richText.VScroll += (_, _) =>
             {
-                var pos   = _richText.GetPositionFromCharIndex(
+                var pos = _richText.GetPositionFromCharIndex(
                     _richText.TextLength);
                 _autoScroll = pos.Y <= _richText.Height + 20;
             };
@@ -89,8 +84,6 @@ namespace RestauranteSO.Presentation.Controls
             Controls.Add(_richText);
             Controls.Add(_headerPanel);
         }
-
-        // ─── API PÚBLICA ─────────────────────────────────────────────────────
 
         public void AgregarLog(LogEntry entry)
         {
@@ -124,11 +117,8 @@ namespace RestauranteSO.Presentation.Controls
             _lblTitulo.Text = titulo;
         }
 
-        // ─── PRIVADOS ─────────────────────────────────────────────────────────
-
         private void AgregarLogInterno(LogEntry entry)
         {
-            // Proteger contra acceso después de dispose
             if (_richText == null || _richText.IsDisposed) return;
 
             if (_cantidadLineas >= MaxLineas)
