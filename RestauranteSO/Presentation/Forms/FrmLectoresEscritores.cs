@@ -15,11 +15,13 @@ namespace RestauranteSO.Presentation.Forms
         private readonly AtaqueLectoresEscritoresService _attackService;
         private readonly ISimulationLogger               _logger;
 
+        // ─── HEADER ───────────────────────────────────────────────────────────
         private Panel       _panelHeader  = null!;
         private Label       _lblTitulo    = null!;
         private StatusBadge _badgeEstado  = null!;
         private Button      _btnVolver    = null!;
 
+        // ─── TOOLBAR ──────────────────────────────────────────────────────────
         private Panel    _panelToolbar     = null!;
         private Button   _btnIniciar       = null!;
         private Button   _btnPausar        = null!;
@@ -29,6 +31,13 @@ namespace RestauranteSO.Presentation.Forms
         private TrackBar _trackVelLector   = null!;
         private Label    _lblVelL          = null!;
 
+        // ─── PANEL CONTROL EXTENDIDO ──────────────────────────────────────────
+        private Panel  _panelControl      = null!;
+        private Button _btnForzarLectura  = null!;
+        private Button _btnForzarEscritura= null!;
+        private Button _btnVerPoliticasCtrl= null!;
+
+        // ─── CUERPO ───────────────────────────────────────────────────────────
         private Panel               _panelIzq          = null!;
         private SemaphoreVisualizer _vizRWLock          = null!;
         private Panel               _panelGerenteVisual = null!;
@@ -36,10 +45,10 @@ namespace RestauranteSO.Presentation.Forms
         private Label               _lblGerenteAccion   = null!;
         private FlowLayoutPanel     _flowMeseros        = null!;
 
-        private Panel        _panelMenu     = null!;
-        private DataGridView _gridMenu      = null!;
-        private Label        _lblMenuTitulo = null!;
-        private Label        _lblMenuVersion= null!;
+        private Panel        _panelMenu      = null!;
+        private DataGridView _gridMenu       = null!;
+        private Label        _lblMenuTitulo  = null!;
+        private Label        _lblMenuVersion = null!;
 
         private Panel     _panelDer            = null!;
         private Label     _lblStatLecturas      = null!;
@@ -76,15 +85,15 @@ namespace RestauranteSO.Presentation.Forms
             SuspendLayout();
             Text          = "📖 Simulación Lectores — Escritores | RestaurantOS";
             WindowState   = FormWindowState.Maximized;
-            MinimumSize   = new Size(1100, 700);
+            MinimumSize   = new Size(1280, 800);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor     = ColorConstants.FondoPrincipal;
             ForeColor     = ColorConstants.TextoPrincipal;
-            // NO asignar Font al form — evita Font.ToLogFont crash
 
             ConstruirHeader();
             ConstruirToolbar();
             ConstruirCuerpo();
+            ConstruirPanelAtaque();
             ConstruirStatusStrip();
 
             _timerUI = new System.Windows.Forms.Timer
@@ -202,25 +211,15 @@ namespace RestauranteSO.Presentation.Forms
                 Padding       = new Padding(8, 10, 8, 10)
             };
 
-            _btnIniciar       = CrearBtn("▶ Iniciar",        150, true,  false);
-            _btnPausar        = CrearBtn("⏸ Pausar",         140, false, false);
-            _btnDetener       = CrearBtn("⏹ Detener",        140, false, false);
+            _btnIniciar       = CrearBtn("▶ Iniciar",      150, true,  false);
+            _btnPausar        = CrearBtn("⏸ Pausar",       140, false, false);
+            _btnDetener       = CrearBtn("⏹ Detener",      140, false, false);
 
-            var sep1 = new Panel
-            {
-                Size      = new Size(1, 44),
-                BackColor = ColorConstants.Separador,
-                Margin    = new Padding(8, 0, 8, 0)
-            };
+            var sep1 = CrearSep();
 
-            _btnAgregarLector = CrearBtn("+ Mesero",         120, false, false);
+            _btnAgregarLector = CrearBtn("+ Mesero",       120, false, false);
 
-            var sep2 = new Panel
-            {
-                Size      = new Size(1, 44),
-                BackColor = ColorConstants.Separador,
-                Margin    = new Padding(8, 0, 8, 0)
-            };
+            var sep2 = CrearSep();
 
             var lblVel = new Label
             {
@@ -237,7 +236,7 @@ namespace RestauranteSO.Presentation.Forms
             _lblVelL = new Label
             {
                 Text      = "5x",
-                Font      = new Font("Segoe UI", 10f, FontStyle.Regular),
+                Font      = new Font("Segoe UI", 10f),
                 ForeColor = ColorConstants.TarjetaLectores,
                 BackColor = ColorConstants.FondoPanel,
                 AutoSize  = false,
@@ -251,6 +250,7 @@ namespace RestauranteSO.Presentation.Forms
                 Minimum   = 1, Maximum = 10, Value = 5,
                 TickStyle = TickStyle.None,
                 Size      = new Size(110, 44),
+                Font      = new Font("Segoe UI", 9f),
                 BackColor = ColorConstants.FondoPanel,
                 Margin    = new Padding(0, 0, 8, 0)
             };
@@ -267,6 +267,13 @@ namespace RestauranteSO.Presentation.Forms
                 Margin    = new Padding(16, 0, 0, 0)
             };
             _btnActivarAtaque.FlatAppearance.BorderSize = 0;
+
+            var tt = new ToolTip { ShowAlways = true, InitialDelay = 400 };
+            tt.SetToolTip(_btnIniciar,       "Iniciar simulación");
+            tt.SetToolTip(_btnPausar,        "Pausar / Reanudar");
+            tt.SetToolTip(_btnDetener,       "Detener simulación");
+            tt.SetToolTip(_btnAgregarLector, "Agregar un mesero lector");
+            tt.SetToolTip(_btnActivarAtaque, "Simular ataque de phishing al gerente");
 
             flow.Controls.AddRange(new Control[]
             {
@@ -304,6 +311,15 @@ namespace RestauranteSO.Presentation.Forms
                 Padding   = new Padding(8)
             };
 
+            // Panel control extendido
+            _panelControl = new Panel
+            {
+                Dock      = DockStyle.Left,
+                BackColor = Color.FromArgb(18, 18, 30),
+                Padding   = new Padding(8)
+            };
+            ConstruirPanelControlExtendido(_panelControl);
+
             _panelDer = new Panel
             {
                 Dock      = DockStyle.Fill,
@@ -314,8 +330,9 @@ namespace RestauranteSO.Presentation.Forms
             void redistribuir()
             {
                 if (panelCuerpo.Width < 100) return;
-                _panelIzq.Width  = (int)(panelCuerpo.Width * 0.28);
-                _panelMenu.Width = (int)(panelCuerpo.Width * 0.42);
+                _panelIzq.Width     = (int)(panelCuerpo.Width * 0.24);
+                _panelMenu.Width    = (int)(panelCuerpo.Width * 0.36);
+                _panelControl.Width = (int)(panelCuerpo.Width * 0.14);
             }
 
             panelCuerpo.Resize += (_, _) => redistribuir();
@@ -325,13 +342,151 @@ namespace RestauranteSO.Presentation.Forms
             ConstruirPanelIzquierdo();
             ConstruirPanelMenu();
             ConstruirPanelDerecho();
-            ConstruirPanelAtaque();
 
             panelCuerpo.Controls.Add(_panelDer);
+            panelCuerpo.Controls.Add(_panelControl);
             panelCuerpo.Controls.Add(_panelMenu);
             panelCuerpo.Controls.Add(_panelIzq);
             Controls.Add(panelCuerpo);
         }
+
+        // ─── PANEL CONTROL EXTENDIDO ─────────────────────────────────────────
+
+        private void ConstruirPanelControlExtendido(Panel panel)
+        {
+            var scroll = new Panel
+            {
+                Dock       = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor  = Color.FromArgb(18, 18, 30),
+                Padding    = new Padding(6)
+            };
+
+            var lblTit = new Label
+            {
+                Text      = "🎛 Centro de Control",
+                Font      = new Font("Segoe UI", 11f, FontStyle.Bold),
+                ForeColor = ColorConstants.TarjetaLectores,
+                BackColor = Color.FromArgb(18, 18, 30),
+                Dock      = DockStyle.Top,
+                Height    = 30,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            var sep = new Panel
+            {
+                Dock      = DockStyle.Top,
+                Height    = 1,
+                BackColor = ColorConstants.Separador
+            };
+
+            var lblSecForzar = CrearSeccion("⚙ Forzar Operación");
+
+            _btnForzarLectura = CrearBtnCtrl("📖 Forzar Lectura",
+                ColorConstants.TarjetaLectores);
+            _btnForzarLectura.Click += (_, _) =>
+            {
+                if (_service.EstaCorreindo)
+                    _service.AgregarLector();
+            };
+
+            _btnForzarEscritura = CrearBtnCtrl("✏ Forzar Escritura",
+                ColorConstants.AcentoSecundario);
+            _btnForzarEscritura.Click += (_, _) =>
+            {
+                if (!_service.EstaCorreindo)
+                    return;
+
+                MessageBox.Show(
+                    "La escritura del gerente ya se realiza automáticamente durante la simulación.",
+                    "Información",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            };
+
+            var lblSecEsc = CrearSeccion("🧪 Escenarios");
+
+            var btnNormal = CrearBtnCtrl("🟢 Normal", ColorConstants.AcentoExito);
+            btnNormal.Click += (_, _) =>
+            {
+                _trackVelLector.Value = 5;
+                if (_service.EstaCorreindo)
+                    _service.AjustarVelocidad(1000);
+            };
+
+            var btnLect = CrearBtnCtrl("📖 Lectores++", ColorConstants.TarjetaLectores);
+            btnLect.Click += (_, _) =>
+            {
+                if (_service.EstaCorreindo)
+                    for (int i = 0; i < 4; i++) _service.AgregarLector();
+            };
+
+            var btnEscr = CrearBtnCtrl("✏ Escritor perm.", ColorConstants.AcentoSecundario);
+            btnEscr.Click += (_, _) =>
+            {
+                _trackVelLector.Value = 8;
+                if (_service.EstaCorreindo)
+                    _service.AjustarVelocidad(300);
+            };
+
+            var lblSecAcc = CrearSeccion("⚡ Acciones");
+
+            _btnVerPoliticasCtrl = CrearBtnCtrl("🛡 Ver Políticas",
+                ColorConstants.AcentoExito);
+            _btnVerPoliticasCtrl.Click += (_, _) => AbrirPoliticas();
+
+            var btnLimpiarLog = CrearBtnCtrl("🗑 Limpiar Log", ColorConstants.TextoHint);
+            btnLimpiarLog.Click += (_, _) => _logViewer?.Limpiar();
+
+            scroll.Controls.AddRange(new Control[]
+            {
+                lblTit, sep,
+                lblSecForzar,
+                _btnForzarLectura, _btnForzarEscritura,
+                lblSecEsc,
+                btnNormal, btnLect, btnEscr,
+                lblSecAcc,
+                _btnVerPoliticasCtrl, btnLimpiarLog
+            });
+
+            panel.Controls.Add(scroll);
+        }
+
+        private static Label CrearSeccion(string texto) => new Label
+        {
+            Text      = texto,
+            Font      = new Font("Segoe UI", 9f, FontStyle.Bold),
+            ForeColor = ColorConstants.TextoHint,
+            BackColor = Color.FromArgb(18, 18, 30),
+            Dock      = DockStyle.Top,
+            Height    = 24,
+            TextAlign = ContentAlignment.BottomLeft,
+            Margin    = new Padding(0, 8, 0, 2)
+        };
+
+        private static Button CrearBtnCtrl(string texto, Color color)
+        {
+            var btn = new Button
+            {
+                Text      = texto,
+                Dock      = DockStyle.Top,
+                Height    = 34,
+                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
+                BackColor = Color.FromArgb(28, 28, 44),
+                ForeColor = color,
+                FlatStyle = FlatStyle.Flat,
+                Cursor    = Cursors.Hand,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding   = new Padding(6, 0, 0, 0),
+                Margin    = new Padding(0, 2, 0, 2)
+            };
+            btn.FlatAppearance.BorderColor = Color.FromArgb(40, color);
+            btn.FlatAppearance.BorderSize  = 1;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, color);
+            return btn;
+        }
+
+        // ─── PANELES INTERNOS ────────────────────────────────────────────────
 
         private void ConstruirPanelIzquierdo()
         {
@@ -387,7 +542,7 @@ namespace RestauranteSO.Presentation.Forms
             _lblGerenteEstado = new Label
             {
                 Text      = "⏳ En espera",
-                Font      = new Font("Segoe UI", 11f, FontStyle.Regular),
+                Font      = new Font("Segoe UI", 11f),
                 ForeColor = ColorConstants.TextoHint,
                 BackColor = ColorConstants.FondoCard,
                 AutoSize  = false,
@@ -399,7 +554,7 @@ namespace RestauranteSO.Presentation.Forms
             _lblGerenteAccion = new Label
             {
                 Text      = "—",
-                Font      = new Font("Segoe UI", 10f, FontStyle.Regular),
+                Font      = new Font("Segoe UI", 10f),
                 ForeColor = ColorConstants.TextoHint,
                 BackColor = ColorConstants.FondoCard,
                 AutoSize  = false,
@@ -420,7 +575,7 @@ namespace RestauranteSO.Presentation.Forms
 
             var lblMeseros = new Label
             {
-                Text      = "🧑‍🍽 Meseros (Lectores)",
+                Text      = "🧑\u200d🍽 Meseros (Lectores)",
                 Font      = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = ColorConstants.TarjetaLectores,
                 BackColor = ColorConstants.FondoLateral,
@@ -465,7 +620,7 @@ namespace RestauranteSO.Presentation.Forms
             _lblMenuVersion = new Label
             {
                 Text      = "Versión del menú: —",
-                Font      = new Font("Segoe UI", 10f, FontStyle.Regular),
+                Font      = new Font("Segoe UI", 10f),
                 ForeColor = ColorConstants.TextoHint,
                 BackColor = ColorConstants.FondoPrincipal,
                 Dock      = DockStyle.Top,
@@ -585,7 +740,6 @@ namespace RestauranteSO.Presentation.Forms
                 Dock      = DockStyle.Fill,
                 BackColor = ColorConstants.FondoAtaque
             };
-
             var lblTit = new Label
             {
                 Text      = "🎣 ATAQUE ACTIVO: Phishing — Menú Comprometido",
@@ -599,10 +753,9 @@ namespace RestauranteSO.Presentation.Forms
             };
             var lblDesc = new Label
             {
-                Text =
-                    "Credenciales del Gerente comprometidas. " +
-                    "Menú alterado. Meseros leen información incorrecta.",
-                Font      = new Font("Segoe UI", 10f, FontStyle.Regular),
+                Text      = "Credenciales del Gerente comprometidas. " +
+                             "Menú alterado. Meseros leen información incorrecta.",
+                Font      = new Font("Segoe UI", 10f),
                 ForeColor = ColorConstants.TextoSecundario,
                 BackColor = ColorConstants.FondoAtaque,
                 AutoSize  = false,
@@ -638,13 +791,12 @@ namespace RestauranteSO.Presentation.Forms
                 Padding    = new Padding(10, 0, 10, 0),
                 RenderMode = ToolStripRenderMode.Professional
             };
-
             _lblStatus = new ToolStripStatusLabel
             {
                 Text      = "Listo — presione Iniciar",
                 Spring    = true,
                 ForeColor = ColorConstants.TextoSecundario,
-                Font      = new Font("Consolas", 10f, FontStyle.Regular)
+                Font      = new Font("Consolas", 10f)
             };
             _lblLockStatus = new ToolStripStatusLabel
             {
@@ -652,7 +804,6 @@ namespace RestauranteSO.Presentation.Forms
                 ForeColor = ColorConstants.AcentoExito,
                 Font      = new Font("Consolas", 10f, FontStyle.Bold)
             };
-
             _statusStrip.Items.AddRange(
                 new ToolStripItem[] { _lblStatus, _lblLockStatus });
             Controls.Add(_statusStrip);
@@ -819,8 +970,7 @@ namespace RestauranteSO.Presentation.Forms
             ActualizarVisualizador(stats);
         }
 
-        private void ActualizarEstadisticas(
-            Domain.Models.SimulationStatistics stats)
+        private void ActualizarEstadisticas(Domain.Models.SimulationStatistics stats)
         {
             _lblStatLecturas.Text      = $"📖 Lecturas: {stats.TotalLecturas}";
             _lblStatEscrituras.Text    = $"✏ Escrituras: {stats.TotalEscrituras}";
@@ -949,8 +1099,7 @@ namespace RestauranteSO.Presentation.Forms
             }
         }
 
-        private void ActualizarVisualizador(
-            Domain.Models.SimulationStatistics stats)
+        private void ActualizarVisualizador(Domain.Models.SimulationStatistics stats)
         {
             _vizRWLock.ActualizarReaderWriterLock(
                 stats.LectoresActivos,
@@ -984,6 +1133,9 @@ namespace RestauranteSO.Presentation.Forms
             _btnAgregarLector.Enabled = corriendo || pausada;
             _btnActivarAtaque.Enabled = corriendo;
 
+            _btnForzarLectura.Enabled   = corriendo || pausada;
+            _btnForzarEscritura.Enabled = corriendo || pausada;
+
             AppTheme.AplicarABotonPrimario(_btnIniciar);
             if (!_btnIniciar.Enabled)
             {
@@ -1003,6 +1155,13 @@ namespace RestauranteSO.Presentation.Forms
             BackColor = ColorConstants.FondoPanel,
             AutoSize  = true,
             Margin    = new Padding(2)
+        };
+
+        private static Panel CrearSep() => new Panel
+        {
+            Size      = new Size(1, 44),
+            BackColor = ColorConstants.Separador,
+            Margin    = new Padding(8, 0, 8, 0)
         };
 
         private static Button CrearBtn(
