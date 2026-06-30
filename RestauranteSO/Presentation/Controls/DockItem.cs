@@ -6,15 +6,8 @@ using RestauranteSO.Presentation.Themes;
 
 namespace RestauranteSO.Presentation.Controls
 {
-    /// <summary>
-    /// Ítem del Dock. 100% GDI+ sin controles hijos.
-    /// Toda la geometría se calcula en OnPaint con MeasureText,
-    /// garantizando que nunca se recorte ningún elemento.
-    /// </summary>
     public sealed class DockItem : Control
     {
-        // ─── CAMPOS ───────────────────────────────────────────────────────────
-
         private string _icono       = "🍽";
         private string _nombre      = "Módulo";
         private string _estado      = "Listo";
@@ -29,25 +22,15 @@ namespace RestauranteSO.Presentation.Controls
 
         private readonly System.Windows.Forms.Timer _animTimer;
 
-        // ─── CONSTANTES DE LAYOUT ─────────────────────────────────────────────
-        // Todos los valores en píxeles lógicos.
-        // Nunca reducir — solo adaptar el contenedor.
-
-        private const int PaddingTopBottom  = 10;   // espacio sup/inf dentro del item
-        private const int PaddingLateral    = 8;    // espacio izq/der
-        private const int GapIconoNombre    = 8;    // separación icono → nombre
-        private const int GapNombreEstado   = 4;    // separación nombre → estado
+        private const int PaddingTopBottom  = 10;
+        private const int PaddingLateral    = 8;
+        private const int GapIconoNombre    = 8;
+        private const int GapNombreEstado   = 4;
         private const int RadioBorde        = 14;
-        private const int AlturaIndicador   = 4;    // punto de "abierto"
-
-        // Tamaños de fuente para el icono (emoji)
+        private const int AlturaIndicador   = 4;
         private const float TamIcono = 28f;
 
-        // ─── EVENTO ───────────────────────────────────────────────────────────
-
         public event EventHandler? ItemClicked;
-
-        // ─── PROPIEDADES ──────────────────────────────────────────────────────
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string Icono
@@ -91,8 +74,6 @@ namespace RestauranteSO.Presentation.Controls
             set { _abierto = value; Invalidate(); }
         }
 
-        // ─── CONSTRUCTOR ─────────────────────────────────────────────────────
-
         public DockItem()
         {
             SetStyle(
@@ -105,7 +86,6 @@ namespace RestauranteSO.Presentation.Controls
             BackColor   = ColorConstants.FondoDock;
             Cursor      = Cursors.Hand;
 
-            // Calcular tamaño mínimo basado en el contenido real
             RecalcularTamano();
 
             _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
@@ -113,39 +93,28 @@ namespace RestauranteSO.Presentation.Controls
             _animTimer.Start();
         }
 
-        // ─── CÁLCULO DE TAMAÑO ───────────────────────────────────────────────
-
-        /// <summary>
-        /// Calcula el tamaño mínimo del control basándose en las medidas
-        /// reales de los textos. Se llama cuando cambian Icono o Nombre.
-        /// </summary>
         private void RecalcularTamano()
         {
             using var fIcono  = new Font("Segoe UI Emoji", TamIcono);
             using var fNombre = AppTheme.FuenteLabelBold;
             using var fEstado = AppTheme.FuenteSmall;
 
-            // Medir icono
             var mIcono = TextRenderer.MeasureText(
                 _icono, fIcono, new Size(400, 400),
                 TextFormatFlags.NoPadding);
 
-            // Medir nombre (puede tener \n)
             var mNombre = TextRenderer.MeasureText(
                 _nombre, fNombre, new Size(160, 400),
                 TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
 
-            // Medir estado
             var mEstado = TextRenderer.MeasureText(
                 _estado, fEstado, new Size(160, 200),
                 TextFormatFlags.NoPadding);
 
-            // Ancho: el mayor entre icono, nombre y estado + padding lateral
             int anchoContenido = Math.Max(mIcono.Width,
                 Math.Max(mNombre.Width, mEstado.Width));
             int anchoTotal = anchoContenido + PaddingLateral * 2;
 
-            // Alto: suma de todos los elementos + espacios + indicador
             int altoTotal =
                 PaddingTopBottom +
                 mIcono.Height    +
@@ -156,15 +125,12 @@ namespace RestauranteSO.Presentation.Controls
                 PaddingTopBottom +
                 AlturaIndicador  + 4;
 
-            // Nunca menor a estos mínimos razonables
             anchoTotal = Math.Max(anchoTotal, 110);
             altoTotal  = Math.Max(altoTotal,  100);
 
             MinimumSize = new Size(anchoTotal, altoTotal);
             Size        = new Size(anchoTotal, altoTotal);
         }
-
-        // ─── ANIMACIÓN ────────────────────────────────────────────────────────
 
         private void AnimTimer_Tick(object? sender, EventArgs e)
         {
@@ -188,8 +154,6 @@ namespace RestauranteSO.Presentation.Controls
                 Math.Abs(_escala     - prevE) > 0.001f)
                 Invalidate();
         }
-
-        // ─── EVENTOS DE MOUSE ─────────────────────────────────────────────────
 
         protected override void OnMouseEnter(EventArgs e)
         {
@@ -226,22 +190,18 @@ namespace RestauranteSO.Presentation.Controls
             ItemClicked?.Invoke(this, EventArgs.Empty);
         }
 
-        // ─── PINTADO ─────────────────────────────────────────────────────────
-
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
             g.SmoothingMode     = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            // Limpiar con el color del padre
             g.Clear(Parent?.BackColor ?? ColorConstants.FondoDock);
 
             int w = Width;
             int h = Height;
             if (w < 20 || h < 20) return;
 
-            // ── Fondo del item ────────────────────────────────────────────────
             if (_hoverAlpha > 0.01f || _activo)
             {
                 float alpha = _activo ? 0.15f : 0.10f * _hoverAlpha;
@@ -252,7 +212,6 @@ namespace RestauranteSO.Presentation.Controls
                     AppTheme.CrearPathRedondeado(fondoRect, RadioBorde);
                 g.FillPath(fondoBrush, fondoPath);
 
-                // Borde sutil en hover
                 if (_hoverAlpha > 0.3f)
                 {
                     using var borderPen = new Pen(
@@ -261,7 +220,6 @@ namespace RestauranteSO.Presentation.Controls
                 }
             }
 
-            // ── Glow ──────────────────────────────────────────────────────────
             if (_hoverAlpha > 0.05f)
             {
                 float gr = Math.Min(w, h) * 0.5f;
@@ -283,18 +241,12 @@ namespace RestauranteSO.Presentation.Controls
                 g.FillEllipse(glowBrush, cx - gr, cy - gr, gr * 2, gr * 2);
             }
 
-            // ── Layout vertical exacto ────────────────────────────────────────
-            // Medir cada elemento antes de posicionar
             using var fIcono  = new Font("Segoe UI Emoji", TamIcono * _escala);
             using var fNombre = new Font(
                 AppTheme.FuenteLabelBold.FontFamily,
                 AppTheme.FuenteLabelBold.Size,
                 FontStyle.Bold);
             using var fEstado = AppTheme.FuenteSmall;
-
-            var flagsBase = TextFormatFlags.HorizontalCenter |
-                            TextFormatFlags.NoPadding        |
-                            TextFormatFlags.WordBreak;
 
             var mIcono  = TextRenderer.MeasureText(_icono,  fIcono,
                 new Size(w, h), TextFormatFlags.NoPadding);
@@ -304,7 +256,6 @@ namespace RestauranteSO.Presentation.Controls
             var mEstado = TextRenderer.MeasureText(_estado, fEstado,
                 new Size(w - PaddingLateral * 2, h), TextFormatFlags.NoPadding);
 
-            // Altura total del contenido
             int contenidoH =
                 mIcono.Height   +
                 GapIconoNombre  +
@@ -312,14 +263,11 @@ namespace RestauranteSO.Presentation.Controls
                 GapNombreEstado +
                 mEstado.Height;
 
-            // Origen Y centrado en el espacio disponible (sin el indicador)
             int espacioDisponible = h - AlturaIndicador - 6;
             int inicioY = Math.Max(PaddingTopBottom,
                 (espacioDisponible - contenidoH) / 2);
 
-            // ── Icono ─────────────────────────────────────────────────────────
             int iconoY = inicioY;
-            // Rect con padding extra para que no se corte ningún glifo
             var iconoRect = new Rectangle(
                 0, iconoY,
                 w, mIcono.Height + 4);
@@ -330,7 +278,6 @@ namespace RestauranteSO.Presentation.Controls
                 TextFormatFlags.Top              |
                 TextFormatFlags.NoPadding);
 
-            // ── Nombre ────────────────────────────────────────────────────────
             int nombreY = iconoY + mIcono.Height + 4 + GapIconoNombre;
             Color colorNombre = _hoverAlpha > 0.3f || _activo
                 ? _colorAcento
@@ -348,7 +295,6 @@ namespace RestauranteSO.Presentation.Controls
                 TextFormatFlags.WordBreak        |
                 TextFormatFlags.NoPadding);
 
-            // ── Estado ────────────────────────────────────────────────────────
             if (_hoverAlpha > 0.2f || _activo || _abierto)
             {
                 int estadoY = nombreY + mNombre.Height + 4 + GapNombreEstado;
@@ -368,7 +314,6 @@ namespace RestauranteSO.Presentation.Controls
                     TextFormatFlags.NoPadding);
             }
 
-            // ── Indicador de abierto (barra inferior) ─────────────────────────
             if (_abierto || _activo)
             {
                 int barraW = _activo ? (int)(w * 0.55f) : (int)(w * 0.25f);
@@ -400,7 +345,6 @@ namespace RestauranteSO.Presentation.Controls
                 g.FillPath(barraBrush, barraPath);
             }
 
-            // ── Press overlay ─────────────────────────────────────────────────
             if (_isPressed)
             {
                 var pressRect = new Rectangle(2, 2, w - 4, h - AlturaIndicador - 4);
@@ -411,8 +355,6 @@ namespace RestauranteSO.Presentation.Controls
                 g.FillPath(pressBrush, pressPath);
             }
         }
-
-        // ─── DISPOSE ─────────────────────────────────────────────────────────
 
         protected override void Dispose(bool disposing)
         {

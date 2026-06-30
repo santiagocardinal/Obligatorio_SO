@@ -1,11 +1,3 @@
-// =============================================================================
-// RestauranteSO - Sistema de Simulación de Sistemas Operativos
-// Archivo  : Presentation/Forms/FrmPoliticas.cs
-// Propósito: Formulario de políticas de prevención y evidencia del ataque.
-//            Muestra qué ocurrió, por qué funcionó y cómo prevenirlo.
-// SOLID    : SRP - solo presenta información de seguridad.
-// =============================================================================
-
 using RestauranteSO.Constants;
 using RestauranteSO.Domain.Models;
 using RestauranteSO.Presentation.Themes;
@@ -19,173 +11,206 @@ namespace RestauranteSO.Presentation.Forms
         private readonly IReadOnlyList<PoliticaSeguridad> _politicas;
         private readonly IReadOnlyList<AttackEvent> _historialAtaques;
 
+        // Controles principales
+        private TabControl _tabs = null!;
+        private Panel _panelHeader = null!;
+        private Panel _panelBotones = null!;
+
         public FrmPoliticas(
             string titulo,
             IReadOnlyList<PoliticaSeguridad> politicas,
             IReadOnlyList<AttackEvent> historialAtaques)
         {
-            _titulo          = titulo;
-            _politicas       = politicas;
+            _titulo = titulo;
+            _politicas = politicas;
             _historialAtaques = historialAtaques;
+
+            // NO asignar fuentes personalizadas aquí - usar fuentes seguras
             InitializeComponent();
+
+            // Asignar fuentes después de la creación
+            this.Load += (s, e) => AplicarFuentes();
         }
 
         private void InitializeComponent()
         {
             SuspendLayout();
 
-            Text            = $"🛡 {_titulo}";
-            Size            = new Size(900, 720);
-            MinimumSize     = new Size(800, 600);
-            StartPosition   = FormStartPosition.CenterParent;
-            BackColor       = ColorConstants.FondoPrincipal;
-            ForeColor       = ColorConstants.TextoPrincipal;
-            Font            = AppTheme.FuenteLabel;
+            Text = $"🛡 {_titulo}";
+            Size = new Size(940, 760);
+            MinimumSize = new Size(840, 640);
+            StartPosition = FormStartPosition.CenterParent;
+            BackColor = ColorConstants.FondoPrincipal;
+            ForeColor = ColorConstants.TextoPrincipal;
             FormBorderStyle = FormBorderStyle.Sizable;
 
-            // Header
-            var panelHeader = new Panel
+            // Usar fuente del sistema para evitar problemas de creación
+            this.Font = SystemFonts.DefaultFont;
+
+            ConstruirHeader();
+            ConstruirTabs();
+            ConstruirBotones();
+
+            ResumeLayout(true);
+        }
+
+        private void ConstruirHeader()
+        {
+            _panelHeader = new Panel
             {
-                Dock      = DockStyle.Top,
-                Height    = 64,
+                Dock = DockStyle.Top,
+                Height = 68,
                 BackColor = ColorConstants.FondoPoliticas,
-                Padding   = new Padding(20, 0, 20, 0)
+                Padding = new Padding(24, 0, 24, 0)
             };
-            panelHeader.Paint += (_, e) =>
+            _panelHeader.Paint += (_, e) =>
             {
                 using var pen = new Pen(ColorConstants.ColorSeguridad, 2);
-                e.Graphics.DrawLine(pen, 0, panelHeader.Height - 2,
-                    panelHeader.Width, panelHeader.Height - 2);
+                e.Graphics.DrawLine(pen, 0, _panelHeader.Height - 2, _panelHeader.Width, _panelHeader.Height - 2);
             };
 
             var lblIco = new Label
             {
-                Text      = "🛡",
-                Font      = new Font("Segoe UI Emoji", 24f),
+                Text = "🛡",
+                Font = new Font("Segoe UI Emoji", 26f),
                 ForeColor = ColorConstants.ColorSeguridad,
-                AutoSize  = false,
-                Size      = new Size(48, 60),
-                Location  = new Point(20, 2),
-                TextAlign = ContentAlignment.MiddleCenter
+                AutoSize = false,
+                Size = new Size(52, 64),
+                Location = new Point(20, 2),
+                TextAlign = ContentAlignment.MiddleCenter,
+                BackColor = ColorConstants.FondoPoliticas
             };
 
             var lblTit = new Label
             {
-                Text      = _titulo,
-                Font      = new Font("Segoe UI", 13f, FontStyle.Bold),
+                Text = _titulo,
+                Font = new Font("Segoe UI", 14f, FontStyle.Bold),
                 ForeColor = ColorConstants.ColorSeguridad,
-                AutoSize  = true,
-                Location  = new Point(72, 14)
+                AutoSize = true,
+                Location = new Point(76, 16),
+                BackColor = ColorConstants.FondoPoliticas
             };
 
             var lblSub = new Label
             {
-                Text =
-                    $"{_historialAtaques.Count} eventos de ataque registrados  " +
-                    $"| {_politicas.Count} políticas de prevención",
-                Font      = AppTheme.FuenteSmall,
+                Text = $"{_historialAtaques.Count} eventos de ataque registrados  |  {_politicas.Count} políticas de prevención",
+                Font = new Font("Segoe UI", 10f, FontStyle.Regular),
                 ForeColor = ColorConstants.TextoHint,
-                AutoSize  = true,
-                Location  = new Point(74, 38)
+                AutoSize = true,
+                Location = new Point(78, 42),
+                BackColor = ColorConstants.FondoPoliticas
             };
 
-            panelHeader.Controls.AddRange(
-                new Control[] { lblIco, lblTit, lblSub });
+            _panelHeader.Controls.AddRange(new Control[] { lblIco, lblTit, lblSub });
+            Controls.Add(_panelHeader);
+        }
 
-            // TabControl para organizar el contenido
-            var tabs = new TabControl
+        private void ConstruirTabs()
+        {
+            _tabs = new TabControl
             {
-                Dock      = DockStyle.Fill,
-                Font      = AppTheme.FuenteLabelBold,
-                Appearance = TabAppearance.Normal
+                Dock = DockStyle.Fill,
+                Appearance = TabAppearance.Normal,
+                Padding = new Point(8, 4)
+            };
+            _tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
+            _tabs.DrawItem += (s, e) =>
+            {
+                var tab = (TabControl)s!;
+                var page = tab.TabPages[e.Index];
+                bool selected = e.Index == tab.SelectedIndex;
+                var backColor = selected ? ColorConstants.FondoCard : ColorConstants.FondoPanel;
+                var foreColor = selected ? ColorConstants.ColorSeguridad : ColorConstants.TextoSecundario;
+
+                using var backBrush = new SolidBrush(backColor);
+                e.Graphics.FillRectangle(backBrush, e.Bounds);
+                TextRenderer.DrawText(e.Graphics, page.Text,
+                    new Font("Segoe UI", 9f, selected ? FontStyle.Bold : FontStyle.Regular),
+                    e.Bounds, foreColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                if (selected)
+                {
+                    using var pen = new Pen(ColorConstants.ColorSeguridad, 2);
+                    e.Graphics.DrawLine(pen, e.Bounds.Left, e.Bounds.Bottom - 2, e.Bounds.Right, e.Bounds.Bottom - 2);
+                }
             };
 
-            // Aplicar estilo al TabControl
-            tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
-            tabs.DrawItem += Tabs_DrawItem;
-
-            var tabPoliticas  = new TabPage("🛡 Políticas de Prevención");
-            var tabEvidencia  = new TabPage("🔍 Evidencia del Ataque");
-            var tabResumen    = new TabPage("📋 Resumen Ejecutivo");
+            var tabPoliticas = new TabPage("🛡 Políticas de Prevención");
+            var tabEvidencia = new TabPage("🔍 Evidencia del Ataque");
+            var tabResumen = new TabPage("📋 Resumen Ejecutivo");
 
             tabPoliticas.BackColor = ColorConstants.FondoPrincipal;
             tabEvidencia.BackColor = ColorConstants.FondoPrincipal;
-            tabResumen.BackColor   = ColorConstants.FondoPrincipal;
+            tabResumen.BackColor = ColorConstants.FondoPrincipal;
 
             ConstruirTabPoliticas(tabPoliticas);
             ConstruirTabEvidencia(tabEvidencia);
             ConstruirTabResumen(tabResumen);
 
-            tabs.TabPages.AddRange(new[]
-                { tabPoliticas, tabEvidencia, tabResumen });
+            _tabs.TabPages.AddRange(new[] { tabPoliticas, tabEvidencia, tabResumen });
+            Controls.Add(_tabs);
+        }
 
-            // Botones inferiores
-            var panelBotones = new Panel
+        private void ConstruirBotones()
+        {
+            _panelBotones = new Panel
             {
-                Dock      = DockStyle.Bottom,
-                Height    = 48,
+                Dock = DockStyle.Bottom,
+                Height = 52,
                 BackColor = ColorConstants.FondoSuperior,
-                Padding   = new Padding(12, 8, 12, 8)
+                Padding = new Padding(16, 8, 16, 8)
             };
 
             var btnCerrar = new Button
             {
-                Text      = "✓ Cerrar",
-                Size      = new Size(110, 32),
-                Font      = AppTheme.FuenteBoton,
-                Anchor    = AnchorStyles.Right | AnchorStyles.Top
+                Text = "✓ Cerrar",
+                Size = new Size(120, 34),
+                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
+                Anchor = AnchorStyles.Right | AnchorStyles.Top
             };
             AppTheme.AplicarABotonPrimario(btnCerrar);
-            btnCerrar.Location =
-                new Point(panelBotones.Width - 126, 8);
-            panelBotones.Resize += (_, _) =>
-                btnCerrar.Location =
-                    new Point(panelBotones.Width - 126, 8);
+            btnCerrar.Location = new Point(_panelBotones.Width - 136, 8);
+            _panelBotones.Resize += (_, _) => btnCerrar.Location = new Point(_panelBotones.Width - 136, 8);
             btnCerrar.Click += (_, _) => Close();
 
             var lblDisclaimer = new Label
             {
-                Text =
-                    "⚠ Este módulo es estrictamente educativo. " +
-                    "Ningún ataque real fue ejecutado durante la simulación.",
-                Font      = AppTheme.FuenteSmall,
+                Text = "⚠ Este módulo es estrictamente educativo. Ningún ataque real fue ejecutado durante la simulación.",
+                Font = new Font("Segoe UI", 10f, FontStyle.Regular),
                 ForeColor = ColorConstants.TextoHint,
-                AutoSize  = true,
-                Location  = new Point(12, 14)
+                AutoSize = true,
+                Location = new Point(12, 14)
             };
 
-            panelBotones.Controls.AddRange(
-                new Control[] { lblDisclaimer, btnCerrar });
-
-            Controls.AddRange(new Control[]
-                { tabs, panelBotones, panelHeader });
-
-            ResumeLayout(true);
+            _panelBotones.Controls.AddRange(new Control[] { lblDisclaimer, btnCerrar });
+            Controls.Add(_panelBotones);
         }
 
-        // ─── TAB POLÍTICAS ────────────────────────────────────────────────────
+        private void AplicarFuentes()
+        {
+            // Asignar fuentes después de la creación del handle
+            // Usar fuentes seguras que no causen excepciones
+            _tabs.Font = new Font("Segoe UI", 10f, FontStyle.Regular);
+        }
 
         private void ConstruirTabPoliticas(TabPage tab)
         {
             var scroll = new Panel
             {
-                Dock      = DockStyle.Fill,
+                Dock = DockStyle.Fill,
                 AutoScroll = true,
                 BackColor = ColorConstants.FondoPrincipal,
-                Padding   = new Padding(12)
+                Padding = new Padding(16)
             };
 
             int y = 8;
-
             foreach (var politica in _politicas)
             {
                 var card = ConstruirCardPolitica(politica, y);
                 scroll.Controls.Add(card);
-                y += card.Height + 10;
+                y += card.Height + 12;
             }
-
-            // Ajustar tamaño del scroll
-            scroll.AutoScrollMinSize = new Size(0, y + 20);
+            scroll.AutoScrollMinSize = new Size(0, y + 24);
             tab.Controls.Add(scroll);
         }
 
@@ -193,189 +218,146 @@ namespace RestauranteSO.Presentation.Forms
         {
             var panel = new Panel
             {
-                Location  = new Point(8, y),
-                Size      = new Size(820, 118),
+                Location = new Point(8, y),
+                Size = new Size(860, 130),
                 BackColor = ColorConstants.FondoCard,
-                Anchor    = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top,
+                Padding = new Padding(0)
             };
             panel.Paint += (_, e) =>
             {
                 using var pen = new Pen(ColorConstants.ColorSeguridad, 1);
-                e.Graphics.DrawRectangle(pen, 0, 0,
-                    panel.Width - 1, panel.Height - 1);
-                // Barra izquierda de acento
+                e.Graphics.DrawRectangle(pen, 0, 0, panel.Width - 1, panel.Height - 1);
                 using var brush = new SolidBrush(ColorConstants.ColorSeguridad);
                 e.Graphics.FillRectangle(brush, 0, 0, 4, panel.Height);
             };
 
-            // Badge de categoría
             var lblCat = new Label
             {
-                Text      = p.Categoria,
-                Font      = new Font("Segoe UI", 7.5f, FontStyle.Bold),
+                Text = p.Categoria,
+                Font = new Font("Segoe UI", 8f, FontStyle.Bold),
                 ForeColor = ColorConstants.TextoHint,
-                AutoSize  = true,
-                Location  = new Point(14, 6)
+                AutoSize = true,
+                Location = new Point(16, 6)
             };
-
-            // Título
             var lblTit = new Label
             {
-                Text      = p.Titulo,
-                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
+                Text = p.Titulo,
+                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = ColorConstants.ColorSeguridad,
-                AutoSize  = false,
-                Size      = new Size(panel.Width - 20, 22),
-                Location  = new Point(14, 20)
+                AutoSize = false,
+                Size = new Size(panel.Width - 24, 24),
+                Location = new Point(16, 22)
             };
-
-            // Descripción
             var lblDesc = new Label
             {
-                Text      = p.Descripcion,
-                Font      = AppTheme.FuenteSmall,
+                Text = p.Descripcion,
+                Font = new Font("Segoe UI", 10f, FontStyle.Regular),
                 ForeColor = ColorConstants.TextoPrincipal,
-                AutoSize  = false,
-                Size      = new Size((panel.Width / 2) - 20, 40),
-                Location  = new Point(14, 46)
+                AutoSize = false,
+                Size = new Size((panel.Width / 2) - 20, 48),
+                Location = new Point(16, 50)
             };
-
-            // Vulnerabilidad explotada
             var lblVulnTit = new Label
             {
-                Text      = "Vulnerabilidad:",
-                Font      = new Font("Segoe UI", 7.5f, FontStyle.Bold),
+                Text = "Vulnerabilidad:",
+                Font = new Font("Segoe UI", 8f, FontStyle.Bold),
                 ForeColor = ColorConstants.AlertaAtaque,
-                AutoSize  = true,
-                Location  = new Point(panel.Width / 2, 46)
+                AutoSize = true,
+                Location = new Point(panel.Width / 2, 50)
             };
-
             var lblVuln = new Label
             {
-                Text      = p.Vulnerabilidad,
-                Font      = AppTheme.FuenteSmall,
+                Text = p.Vulnerabilidad,
+                Font = new Font("Segoe UI", 10f, FontStyle.Regular),
                 ForeColor = ColorConstants.EstadoAlterado,
-                AutoSize  = false,
-                Size      = new Size((panel.Width / 2) - 20, 30),
-                Location  = new Point(panel.Width / 2, 62)
+                AutoSize = false,
+                Size = new Size((panel.Width / 2) - 20, 32),
+                Location = new Point(panel.Width / 2, 66)
             };
-
-            // Implementación
             var lblImplTit = new Label
             {
-                Text      = "Implementación:",
-                Font      = new Font("Segoe UI", 7.5f, FontStyle.Bold),
+                Text = "Implementación:",
+                Font = new Font("Segoe UI", 8f, FontStyle.Bold),
                 ForeColor = ColorConstants.AcentoPrincipal,
-                AutoSize  = true,
-                Location  = new Point(14, 90)
+                AutoSize = true,
+                Location = new Point(16, 102)
             };
             var lblImpl = new Label
             {
-                Text      = p.Implementacion,
-                Font      = AppTheme.FuenteSmall,
+                Text = p.Implementacion,
+                Font = new Font("Segoe UI", 10f, FontStyle.Regular),
                 ForeColor = ColorConstants.TextoSecundario,
-                AutoSize  = false,
-                Size      = new Size(panel.Width - 20, 16),
-                Location  = new Point(100, 91)
+                AutoSize = false,
+                Size = new Size(panel.Width - 24, 18),
+                Location = new Point(110, 104)
             };
 
-            panel.Controls.AddRange(new Control[]
-            {
-                lblCat, lblTit, lblDesc,
-                lblVulnTit, lblVuln,
-                lblImplTit, lblImpl
-            });
-
-            // Ajuste responsive al resize del tab
+            panel.Controls.AddRange(new Control[] { lblCat, lblTit, lblDesc, lblVulnTit, lblVuln, lblImplTit, lblImpl });
             panel.Resize += (_, _) =>
             {
                 int w = panel.Width;
-                lblTit.Width   = w - 20;
-                lblDesc.Width  = (w / 2) - 20;
-                lblVulnTit.Location = new Point(w / 2, 46);
-                lblVuln.Location    = new Point(w / 2, 62);
-                lblVuln.Width       = (w / 2) - 20;
-                lblImpl.Width       = w - 20;
+                lblTit.Width = w - 24;
+                lblDesc.Width = (w / 2) - 20;
+                lblVulnTit.Location = new Point(w / 2, 50);
+                lblVuln.Location = new Point(w / 2, 66);
+                lblVuln.Width = (w / 2) - 20;
+                lblImpl.Width = w - 24;
             };
-
             return panel;
         }
-
-        // ─── TAB EVIDENCIA ────────────────────────────────────────────────────
 
         private void ConstruirTabEvidencia(TabPage tab)
         {
             var panelMain = new Panel
             {
-                Dock      = DockStyle.Fill,
+                Dock = DockStyle.Fill,
                 BackColor = ColorConstants.FondoPrincipal,
-                Padding   = new Padding(12)
+                Padding = new Padding(16)
             };
 
-            // Resumen de impacto
             var panelImpacto = new Panel
             {
-                Dock      = DockStyle.Top,
-                Height    = 68,
+                Dock = DockStyle.Top,
+                Height = 72,
                 BackColor = ColorConstants.FondoAtaque,
-                Padding   = new Padding(12, 8, 12, 8),
-                Margin    = new Padding(0, 0, 0, 8)
+                Padding = new Padding(16, 8, 16, 8),
+                Margin = new Padding(0, 0, 0, 8)
             };
             panelImpacto.Paint += (_, e) =>
             {
                 using var pen = new Pen(ColorConstants.AlertaAtaque, 1);
-                e.Graphics.DrawRectangle(pen, 0, 0,
-                    panelImpacto.Width - 1, panelImpacto.Height - 1);
+                e.Graphics.DrawRectangle(pen, 0, 0, panelImpacto.Width - 1, panelImpacto.Height - 1);
             };
 
             var lblImpTit = new Label
             {
-                Text      = $"⚡ Total de eventos de ataque registrados: {_historialAtaques.Count}",
-                Font      = new Font("Segoe UI", 10f, FontStyle.Bold),
+                Text = $"⚡ Total de eventos de ataque registrados: {_historialAtaques.Count}",
+                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
                 ForeColor = ColorConstants.AlertaAtaque,
-                AutoSize  = true,
-                Location  = new Point(12, 8)
+                AutoSize = true,
+                Location = new Point(12, 8),
+                BackColor = ColorConstants.FondoAtaque
             };
-
             var lblImpSub = new Label
             {
-                Text =
-                    "Los siguientes eventos ocurrieron durante la simulación del ataque. " +
-                    "En un escenario real, cada uno representaría un impacto concreto en el negocio.",
-                Font      = AppTheme.FuenteSmall,
+                Text = "Los siguientes eventos ocurrieron durante la simulación del ataque. En un escenario real, cada uno representaría un impacto concreto en el negocio.",
+                Font = new Font("Segoe UI", 10f, FontStyle.Regular),
                 ForeColor = ColorConstants.TextoSecundario,
-                AutoSize  = false,
-                Size      = new Size(820, 30),
-                Location  = new Point(12, 30)
+                AutoSize = false,
+                Size = new Size(860, 32),
+                Location = new Point(12, 32),
+                BackColor = ColorConstants.FondoAtaque
             };
+            panelImpacto.Controls.AddRange(new Control[] { lblImpTit, lblImpSub });
 
-            panelImpacto.Controls.AddRange(
-                new Control[] { lblImpTit, lblImpSub });
-
-            // Grid de eventos
             var gridEventos = new DataGridView { Dock = DockStyle.Fill };
             AppTheme.AplicarADataGrid(gridEventos);
-
-            gridEventos.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Hora", HeaderText = "Hora", Width = 80, FillWeight = 10
-            });
-            gridEventos.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Tipo", HeaderText = "Tipo de Ataque", FillWeight = 18
-            });
-            gridEventos.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Componente", HeaderText = "Componente", FillWeight = 18
-            });
-            gridEventos.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Descripcion", HeaderText = "Descripción", FillWeight = 30
-            });
-            gridEventos.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Impacto", HeaderText = "Impacto en Negocio", FillWeight = 24
-            });
+            gridEventos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Hora", HeaderText = "Hora", Width = 80, FillWeight = 10 });
+            gridEventos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Tipo", HeaderText = "Tipo de Ataque", FillWeight = 18 });
+            gridEventos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Componente", HeaderText = "Componente", FillWeight = 18 });
+            gridEventos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Descripcion", HeaderText = "Descripción", FillWeight = 30 });
+            gridEventos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Impacto", HeaderText = "Impacto en Negocio", FillWeight = 24 });
 
             foreach (var ev in _historialAtaques)
             {
@@ -383,13 +365,9 @@ namespace RestauranteSO.Presentation.Forms
                     ev.Timestamp.ToString("HH:mm:ss"),
                     ev.TipoAtaque.ToString(),
                     ev.ComponenteAfectado,
-                    ev.Descripcion.Length > 45
-                        ? ev.Descripcion[..45] + "…" : ev.Descripcion,
-                    ev.ImpactoNegocio.Length > 40
-                        ? ev.ImpactoNegocio[..40] + "…" : ev.ImpactoNegocio);
-
-                gridEventos.Rows[idx].DefaultCellStyle.ForeColor =
-                    ColorConstants.EstadoAlterado;
+                    ev.Descripcion.Length > 45 ? ev.Descripcion[..45] + "…" : ev.Descripcion,
+                    ev.ImpactoNegocio.Length > 40 ? ev.ImpactoNegocio[..40] + "…" : ev.ImpactoNegocio);
+                gridEventos.Rows[idx].DefaultCellStyle.ForeColor = ColorConstants.EstadoAlterado;
             }
 
             panelMain.Controls.Add(gridEventos);
@@ -397,64 +375,67 @@ namespace RestauranteSO.Presentation.Forms
             tab.Controls.Add(panelMain);
         }
 
-        // ─── TAB RESUMEN EJECUTIVO ────────────────────────────────────────────
-
         private void ConstruirTabResumen(TabPage tab)
         {
-            var scroll = new RichTextBox
+            var scroll = new Panel
             {
-                Dock        = DockStyle.Fill,
-                BackColor   = ColorConstants.FondoPrincipal,
-                ForeColor   = ColorConstants.TextoPrincipal,
-                Font        = AppTheme.FuenteLabel,
-                BorderStyle = BorderStyle.None,
-                ReadOnly    = true,
-                Padding     = new Padding(16)
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor = ColorConstants.FondoPrincipal,
+                Padding = new Padding(20)
             };
 
-            scroll.SelectionFont =
-                new Font("Segoe UI", 14f, FontStyle.Bold);
-            scroll.SelectionColor = ColorConstants.ColorSeguridad;
-            scroll.AppendText("RESUMEN EJECUTIVO DE SEGURIDAD\n\n");
+            int y = 8;
+            int maxWidth = scroll.Width - 40;
 
-            scroll.SelectionFont  = AppTheme.FuenteLabelBold;
-            scroll.SelectionColor = ColorConstants.AlertaAtaque;
-            scroll.AppendText("━━ QUÉ OCURRIÓ ━━━━━━━━━━━━━━━━━━━━━━━\n");
-            scroll.SelectionFont  = AppTheme.FuenteLabel;
-            scroll.SelectionColor = ColorConstants.TextoPrincipal;
-            scroll.AppendText(
+            // Título principal
+            var lblTitulo = new Label
+            {
+                Text = "RESUMEN EJECUTIVO DE SEGURIDAD",
+                Font = new Font("Segoe UI", 14f, FontStyle.Bold),
+                ForeColor = ColorConstants.ColorSeguridad,
+                AutoSize = true,
+                Location = new Point(12, y)
+            };
+            scroll.Controls.Add(lblTitulo);
+            y += lblTitulo.Height + 12;
+
+            // Sección 1
+            AgregarSeccionLabel(scroll, ref y, maxWidth, "━━ QUÉ OCURRIÓ ━━━━━━━━━━━━━━━━━━━━━━━",
+                new Font("Segoe UI", 11f, FontStyle.Bold), ColorConstants.AlertaAtaque);
+            AgregarTextoLabel(scroll, ref y, maxWidth,
                 "Se ejecutó una simulación educativa de ataque de ingeniería social " +
                 "sobre el sistema del restaurante. El atacante explotó la confianza " +
-                "del personal para obtener acceso no autorizado al sistema.\n\n");
+                "del personal para obtener acceso no autorizado al sistema.",
+                new Font("Segoe UI", 11f, FontStyle.Regular), ColorConstants.TextoPrincipal);
+            y += 8;
 
-            scroll.SelectionFont  = AppTheme.FuenteLabelBold;
-            scroll.SelectionColor = ColorConstants.EstadoEsperando;
-            scroll.AppendText("━━ VECTOR DE ATAQUE ━━━━━━━━━━━━━━━━━━\n");
-            scroll.SelectionFont  = AppTheme.FuenteLabel;
-            scroll.SelectionColor = ColorConstants.TextoPrincipal;
-            scroll.AppendText(
+            // Sección 2
+            AgregarSeccionLabel(scroll, ref y, maxWidth, "━━ VECTOR DE ATAQUE ━━━━━━━━━━━━━━━━━━",
+                new Font("Segoe UI", 11f, FontStyle.Bold), ColorConstants.EstadoEsperando);
+            AgregarTextoLabel(scroll, ref y, maxWidth,
                 "Ingeniería Social: El atacante se presentó como personal técnico " +
                 "legítimo, creando urgencia artificial para obtener acceso inmediato " +
-                "sin seguir los procedimientos establecidos de verificación.\n\n");
+                "sin seguir los procedimientos establecidos de verificación.",
+                new Font("Segoe UI", 11f, FontStyle.Regular), ColorConstants.TextoPrincipal);
+            y += 8;
 
-            scroll.SelectionFont  = AppTheme.FuenteLabelBold;
-            scroll.SelectionColor = ColorConstants.AlertaAtaque;
-            scroll.AppendText("━━ ERROR HUMANO PRINCIPAL ━━━━━━━━━━━━━\n");
-            scroll.SelectionFont  = AppTheme.FuenteLabel;
-            scroll.SelectionColor = ColorConstants.TextoPrincipal;
-            scroll.AppendText(
+            // Sección 3
+            AgregarSeccionLabel(scroll, ref y, maxWidth, "━━ ERROR HUMANO PRINCIPAL ━━━━━━━━━━━━━",
+                new Font("Segoe UI", 11f, FontStyle.Bold), ColorConstants.AlertaAtaque);
+            AgregarTextoLabel(scroll, ref y, maxWidth,
                 "El personal otorgó acceso sin:\n" +
                 "  • Verificar la identidad con credenciales escritas\n" +
                 "  • Obtener aprobación escrita de la gerencia\n" +
                 "  • Consultar al departamento de IT\n" +
-                "  • Seguir el proceso de gestión de cambios establecido\n\n");
+                "  • Seguir el proceso de gestión de cambios establecido",
+                new Font("Segoe UI", 11f, FontStyle.Regular), ColorConstants.TextoPrincipal);
+            y += 8;
 
-            scroll.SelectionFont  = AppTheme.FuenteLabelBold;
-            scroll.SelectionColor = ColorConstants.ColorSeguridad;
-            scroll.AppendText("━━ CONTROLES RECOMENDADOS ━━━━━━━━━━━━\n");
-            scroll.SelectionFont  = AppTheme.FuenteLabel;
-            scroll.SelectionColor = ColorConstants.TextoPrincipal;
-            scroll.AppendText(
+            // Sección 4
+            AgregarSeccionLabel(scroll, ref y, maxWidth, "━━ CONTROLES RECOMENDADOS ━━━━━━━━━━━━",
+                new Font("Segoe UI", 11f, FontStyle.Bold), ColorConstants.ColorSeguridad);
+            AgregarTextoLabel(scroll, ref y, maxWidth,
                 "INMEDIATOS (0-30 días):\n" +
                 "  • Capacitación obligatoria en ingeniería social\n" +
                 "  • Activar MFA en todas las cuentas privilegiadas\n" +
@@ -466,55 +447,54 @@ namespace RestauranteSO.Presentation.Forms
                 "LARGO PLAZO (90+ días):\n" +
                 "  • Programa continuo de concientización en seguridad\n" +
                 "  • Auditorías de seguridad periódicas\n" +
-                "  • Plan de respuesta a incidentes documentado y probado\n\n");
+                "  • Plan de respuesta a incidentes documentado y probado",
+                new Font("Segoe UI", 11f, FontStyle.Regular), ColorConstants.TextoPrincipal);
+            y += 8;
 
-            scroll.SelectionFont  = AppTheme.FuenteLabelBold;
-            scroll.SelectionColor = ColorConstants.AcentoPrincipal;
-            scroll.AppendText("━━ MARCOS DE REFERENCIA ━━━━━━━━━━━━━━\n");
-            scroll.SelectionFont  = AppTheme.FuenteLabel;
-            scroll.SelectionColor = ColorConstants.TextoSecundario;
-            scroll.AppendText(
+            // Sección 5
+            AgregarSeccionLabel(scroll, ref y, maxWidth, "━━ MARCOS DE REFERENCIA ━━━━━━━━━━━━━━",
+                new Font("Segoe UI", 11f, FontStyle.Bold), ColorConstants.AcentoPrincipal);
+            AgregarTextoLabel(scroll, ref y, maxWidth,
                 "• NIST Cybersecurity Framework (CSF 2.0)\n" +
                 "• ISO/IEC 27001:2022 — Gestión de Seguridad de la Información\n" +
                 "• CIS Controls v8 — Control 14: Security Awareness\n" +
                 "• OWASP — Social Engineering Prevention\n" +
-                "• MITRE ATT&CK — T1566 (Phishing)\n");
+                "• MITRE ATT&CK — T1566 (Phishing)",
+                new Font("Segoe UI", 11f, FontStyle.Regular), ColorConstants.TextoSecundario);
+            y += 8;
 
+            scroll.AutoScrollMinSize = new Size(0, y + 40);
             tab.Controls.Add(scroll);
         }
 
-        // ─── DIBUJO DE TABS ───────────────────────────────────────────────────
-
-        private void Tabs_DrawItem(object? sender, DrawItemEventArgs e)
+        private void AgregarSeccionLabel(Panel parent, ref int y, int maxWidth, string texto, Font font, Color color)
         {
-            var tab = (TabControl)sender!;
-            var page = tab.TabPages[e.Index];
-
-            bool selected = e.Index == tab.SelectedIndex;
-            var backColor = selected
-                ? ColorConstants.FondoCard
-                : ColorConstants.FondoPanel;
-            var foreColor = selected
-                ? ColorConstants.ColorSeguridad
-                : ColorConstants.TextoSecundario;
-
-            using var backBrush = new SolidBrush(backColor);
-            e.Graphics.FillRectangle(backBrush, e.Bounds);
-
-            TextRenderer.DrawText(e.Graphics, page.Text,
-                new Font("Segoe UI", 9f,
-                    selected ? FontStyle.Bold : FontStyle.Regular),
-                e.Bounds, foreColor,
-                TextFormatFlags.HorizontalCenter |
-                TextFormatFlags.VerticalCenter);
-
-            if (selected)
+            var lbl = new Label
             {
-                using var pen = new Pen(ColorConstants.ColorSeguridad, 2);
-                e.Graphics.DrawLine(pen,
-                    e.Bounds.Left, e.Bounds.Bottom - 2,
-                    e.Bounds.Right, e.Bounds.Bottom - 2);
-            }
+                Text = texto,
+                Font = font,
+                ForeColor = color,
+                AutoSize = true,
+                Location = new Point(12, y),
+                MaximumSize = new Size(maxWidth, 0)
+            };
+            parent.Controls.Add(lbl);
+            y += lbl.Height + 4;
+        }
+
+        private void AgregarTextoLabel(Panel parent, ref int y, int maxWidth, string texto, Font font, Color color)
+        {
+            var lbl = new Label
+            {
+                Text = texto,
+                Font = font,
+                ForeColor = color,
+                AutoSize = true,
+                Location = new Point(12, y),
+                MaximumSize = new Size(maxWidth, 0)
+            };
+            parent.Controls.Add(lbl);
+            y += lbl.Height + 4;
         }
     }
 }
