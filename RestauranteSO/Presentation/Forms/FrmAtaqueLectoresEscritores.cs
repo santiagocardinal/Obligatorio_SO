@@ -13,7 +13,9 @@ namespace RestauranteSO.Presentation.Forms
         private readonly LectoresEscritoresService _service;
         private readonly AtaqueLectoresEscritoresService _attackService;
         private readonly ISimulationLogger _logger;
+        private readonly IMenuRepository _menuRepo;
 
+        // ─── BARRA DE TÍTULO ─────────────────────────────────────────────────
         private Panel _titleBar = null!;
         private Label _lblTitulo = null!;
         private Button _btnClose = null!;
@@ -21,10 +23,33 @@ namespace RestauranteSO.Presentation.Forms
         private Button _btnMaximize = null!;
         private StatusBadge _badgeEstado = null!;
 
-        private Panel _contenedor = null!;
+        // ─── LAYOUT PRINCIPAL ──────────────────────────────────────────────
+        private TableLayoutPanel _mainLayout = null!;
+        private Panel _panelSimulacion = null!;
+        private Panel _panelAtaque = null!;
+
+        // ─── CONTROLES DEL PANEL DE ATAQUE ─────────────────────────────────
+        private Label _lblAtaqueTitulo = null!;
+        private Panel _panelActor = null!;
+        private Label _lblActorIcono = null!;
+        private Label _lblActorNombre = null!;
+        private FlowLayoutPanel _flowPasos = null!;
+        private ListBox _listEventos = null!;
+
+        // ─── FORMULARIO HIJO ──────────────────────────────────────────────
         private FrmLectoresEscritores? _frmLE = null;
 
+        // ─── TIMERS Y ESTADO ───────────────────────────────────────────────
+        private System.Windows.Forms.Timer _timerAtaque = null!;
+        private readonly Queue<AtaquePaso> _pasosPendientes = new();
+        private AtaquePaso? _pasoActual = null;
+        private int _contadorPasos = 0;
+        private readonly Random _random = new();
+
         private const int TITLE_BAR_HEIGHT = 38;
+        private const int ANCHO_COLUMNA_ATAQUE = 380;
+
+        // ─── CONSTRUCTOR ────────────────────────────────────────────────────
 
         public FrmAtaqueLectoresEscritores(
             LectoresEscritoresService service,
@@ -34,8 +59,13 @@ namespace RestauranteSO.Presentation.Forms
             _service = service ?? throw new ArgumentNullException(nameof(service));
             _attackService = attackService ?? throw new ArgumentNullException(nameof(attackService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _menuRepo = Configuration.AppSettings.Resolver<IMenuRepository>();
+
             InitializeComponent();
+            ConfigurarEventos();
         }
+
+        // ─── INICIALIZACIÓN ────────────────────────────────────────────────
 
         private void InitializeComponent()
         {
@@ -52,58 +82,9 @@ namespace RestauranteSO.Presentation.Forms
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.DoubleBuffer | ControlStyles.ResizeRedraw, true);
 
             ConstruirTitleBar();
-
-            _contenedor = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = ColorConstants.FondoPrincipal,
-                Padding = new Padding(0)
-            };
-            Controls.Add(_contenedor);
+            ConstruirLayoutPrincipal();
 
             ResumeLayout(true);
-
-            Load += async (_, _) =>
-            {
-                await Task.Delay(400);
-                _frmLE = new FrmLectoresEscritores(_service, _attackService, _logger)
-                {
-                    TopLevel = false,
-                    FormBorderStyle = FormBorderStyle.None,
-                    Dock = DockStyle.Fill,
-                    Font = SystemFonts.DefaultFont
-                };
-                _contenedor.Controls.Add(_frmLE);
-                _frmLE.Visible = true;
-                _frmLE.BringToFront();
-                _frmLE.Size = _contenedor.Size;
-                _contenedor.Resize += (_, _) =>
-                {
-                    if (!_frmLE.IsDisposed)
-                        _frmLE.Size = _contenedor.Size;
-                };
-
-                await Task.Delay(800);
-                _service.Iniciar();
-
-                await Task.Delay(3000);
-                using var dlg = new FrmIngenieriaSocial(
-                    "📧 [BANDEJA DE ENTRADA] — 1 mensaje nuevo",
-                    "De: noreply@sistema-gestion-restaurante.net\nPara: gerente@restaurantedoncod.com\n" +
-                    "Asunto: ⚠ ACCIÓN REQUERIDA: Verificación obligatoria\n\nEstimado/a Gerente,\n\n" +
-                    "Hemos detectado actividad inusual en su cuenta.\nDebe verificar sus credenciales en las próximas 2 horas.\n\n" +
-                    "De lo contrario su acceso será suspendido.",
-                    "🔗 Verificar mi cuenta ahora",
-                    "🗑 Mover a Spam (correcto ✓)");
-                if (dlg.ShowDialog(this) == DialogResult.OK)
-                    _attackService.ActivarAtaque(AttackType.PhishingMenuAlterado);
-            };
-
-            FormClosing += (_, _) =>
-            {
-                if (_service.EstaCorreindo) _service.Detener();
-                if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
-            };
         }
 
         private void ConstruirTitleBar()
@@ -112,8 +93,7 @@ namespace RestauranteSO.Presentation.Forms
             {
                 Dock = DockStyle.Top,
                 Height = TITLE_BAR_HEIGHT,
-                BackColor = ColorConstants.FondoAtaque,
-                Padding = new Padding(0)
+                BackColor = ColorConstants.FondoAtaque
             };
             _titleBar.Paint += (s, e) =>
             {
@@ -200,8 +180,369 @@ namespace RestauranteSO.Presentation.Forms
             return btn;
         }
 
+        private void ConstruirLayoutPrincipal()
+        {
+            _mainLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = ColorConstants.FondoPrincipal,
+                Padding = new Padding(0)
+            };
+            _mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            _mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, ANCHO_COLUMNA_ATAQUE));
+            _mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+
+            _panelSimulacion = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = ColorConstants.FondoPrincipal,
+                Padding = new Padding(0)
+            };
+
+            _panelAtaque = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = ColorConstants.FondoAtaque,
+                Padding = new Padding(8, 8, 8, 8)
+            };
+
+            _mainLayout.Controls.Add(_panelSimulacion, 0, 0);
+            _mainLayout.Controls.Add(_panelAtaque, 1, 0);
+
+            ConstruirPanelAtaque();
+
+            Controls.Add(_mainLayout);
+        }
+
+        private void ConstruirPanelAtaque()
+        {
+            _lblAtaqueTitulo = new Label
+            {
+                Text = "🎣 Actividad de Phishing",
+                Font = new Font("Segoe UI", 13f, FontStyle.Bold),
+                ForeColor = ColorConstants.TarjetaAtaque2,
+                BackColor = ColorConstants.FondoAtaque,
+                Dock = DockStyle.Top,
+                Height = 34,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(4, 0, 0, 0)
+            };
+            _panelAtaque.Controls.Add(_lblAtaqueTitulo);
+
+            var actorPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 60,
+                BackColor = ColorConstants.FondoAtaque,
+                Padding = new Padding(4)
+            };
+            _lblActorIcono = new Label
+            {
+                Text = "👤",
+                Font = new Font("Segoe UI Emoji", 28f),
+                ForeColor = ColorConstants.TextoPrincipal,
+                BackColor = ColorConstants.FondoAtaque,
+                AutoSize = false,
+                Size = new Size(50, 50),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Location = new Point(4, 4)
+            };
+            _lblActorNombre = new Label
+            {
+                Text = "Atacante (phishing)",
+                Font = AppTheme.FuenteLabelBold,
+                ForeColor = ColorConstants.TarjetaAtaque2,
+                BackColor = ColorConstants.FondoAtaque,
+                AutoSize = false,
+                Size = new Size(220, 30),
+                Location = new Point(60, 14),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            actorPanel.Controls.Add(_lblActorIcono);
+            actorPanel.Controls.Add(_lblActorNombre);
+            _panelAtaque.Controls.Add(actorPanel);
+
+            _panelAtaque.Controls.Add(new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 2,
+                BackColor = ColorConstants.Separador
+            });
+
+            _flowPasos = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 140,
+                BackColor = ColorConstants.FondoAtaque,
+                Padding = new Padding(4),
+                AutoScroll = false,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false
+            };
+            _panelAtaque.Controls.Add(_flowPasos);
+
+            var lblEventos = new Label
+            {
+                Text = "📋 Registro de acciones",
+                Font = AppTheme.FuenteSmallBold,
+                ForeColor = ColorConstants.TextoSecundario,
+                BackColor = ColorConstants.FondoAtaque,
+                Dock = DockStyle.Top,
+                Height = 28,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(4, 0, 0, 0)
+            };
+            _panelAtaque.Controls.Add(lblEventos);
+
+            _listEventos = new ListBox
+            {
+                Dock = DockStyle.Fill,
+                BackColor = ColorConstants.FondoPanel,
+                ForeColor = ColorConstants.TextoPrincipal,
+                Font = new Font("Consolas", 9f),
+                BorderStyle = BorderStyle.None,
+                DrawMode = DrawMode.OwnerDrawFixed,
+                ItemHeight = 20,
+                IntegralHeight = false
+            };
+            _listEventos.DrawItem += ListEventos_DrawItem;
+            _panelAtaque.Controls.Add(_listEventos);
+
+            AgregarEvento("🟡 Esperando inicio del ataque...");
+        }
+
+        private void ListEventos_DrawItem(object? sender, DrawItemEventArgs e)
+        {
+            if (e.Index < 0) return;
+            var lb = (ListBox)sender!;
+            string texto = lb.Items[e.Index].ToString() ?? "";
+            e.DrawBackground();
+            TextRenderer.DrawText(e.Graphics, texto, lb.Font, e.Bounds,
+                lb.ForeColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            e.DrawFocusRectangle();
+        }
+
+        // ─── EVENTOS ────────────────────────────────────────────────────────
+
+        private void ConfigurarEventos()
+        {
+            _attackService.AtaqueActivado += (_, tipo) =>
+            {
+                if (InvokeRequired) { BeginInvoke(() => OnAtaqueActivado(tipo)); return; }
+                OnAtaqueActivado(tipo);
+            };
+
+            _attackService.AtaqueDesactivado += (_, _) =>
+            {
+                if (InvokeRequired) { BeginInvoke(OnAtaqueDesactivado); return; }
+                OnAtaqueDesactivado();
+            };
+
+            FormClosing += (_, _) =>
+            {
+                _timerAtaque?.Stop();
+                if (_service.EstaCorreindo) _service.Detener();
+                if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
+            };
+
+            this.Load += async (_, _) =>
+            {
+                await Task.Delay(400);
+                _frmLE = new FrmLectoresEscritores(_service, _attackService, _logger)
+                {
+                    TopLevel = false,
+                    FormBorderStyle = FormBorderStyle.None,
+                    Dock = DockStyle.Fill,
+                    Font = SystemFonts.DefaultFont
+                };
+                _panelSimulacion.Controls.Add(_frmLE);
+                _frmLE.Visible = true;
+                _frmLE.BringToFront();
+                _frmLE.Size = _panelSimulacion.Size;
+
+                _panelSimulacion.Resize += (_, _) =>
+                {
+                    if (_frmLE != null && !_frmLE.IsDisposed)
+                        _frmLE.Size = _panelSimulacion.Size;
+                };
+
+                await Task.Delay(800);
+                _service.Iniciar();
+            };
+        }
+
+        // ─── MANEJO DE ATAQUE ──────────────────────────────────────────────
+
+        private void OnAtaqueActivado(AttackType tipo)
+        {
+            _badgeEstado.Text = "🎣 PHISHING ACTIVO";
+            _badgeEstado.ColorAcento = ColorConstants.TarjetaAtaque2;
+
+            _lblActorNombre.Text = "👤 Atacante (phishing) — ACTIVO";
+            _lblActorNombre.ForeColor = ColorConstants.TarjetaAtaque2;
+
+            AgregarEvento("🚨 ATAQUE ACTIVADO — Phishing al Gerente, menú comprometido");
+
+            if (_timerAtaque == null)
+            {
+                _timerAtaque = new System.Windows.Forms.Timer { Interval = 1800 };
+                _timerAtaque.Tick += TimerAtaque_Tick;
+            }
+            _timerAtaque.Start();
+
+            _flowPasos.Controls.Clear();
+            _pasosPendientes.Clear();
+            _pasoActual = null;
+            _contadorPasos = 0;
+
+            AgregarPaso("📧", "Correo de phishing enviado", ColorConstants.TarjetaAtaque2);
+        }
+
+        private void OnAtaqueDesactivado()
+        {
+            _badgeEstado.Text = "🛡 ATAQUE DESACTIVADO";
+            _badgeEstado.ColorAcento = ColorConstants.AcentoExito;
+
+            _lblActorNombre.Text = "👤 Atacante (bloqueado)";
+            _lblActorNombre.ForeColor = ColorConstants.TextoSecundario;
+
+            AgregarEvento("🛡 ATAQUE DESACTIVADO — Políticas aplicadas, acceso revocado");
+
+            _timerAtaque?.Stop();
+
+            _flowPasos.Controls.Clear();
+            _pasosPendientes.Clear();
+            _pasoActual = null;
+
+            AgregarPaso("🛡", "Sistema protegido", ColorConstants.AcentoExito);
+        }
+
+        private void TimerAtaque_Tick(object? sender, EventArgs e)
+        {
+            if (_pasosPendientes.Count == 0)
+            {
+                GenerarNuevoPaso();
+            }
+
+            if (_pasosPendientes.Count > 0)
+            {
+                var paso = _pasosPendientes.Dequeue();
+                MostrarPaso(paso);
+                _pasoActual = paso;
+                AgregarEvento($"{paso.Icono} {paso.Texto}");
+            }
+        }
+
+        private void GenerarNuevoPaso()
+        {
+            _contadorPasos++;
+
+            // Simular el flujo de phishing con variaciones
+            var pasosBase = new List<AtaquePaso>
+            {
+                new AtaquePaso { Icono = "📧", Texto = "Correo de phishing enviado", Color = ColorConstants.TarjetaAtaque2 },
+                new AtaquePaso { Icono = "👤", Texto = "Empleado recibe correo", Color = ColorConstants.TextoPrincipal },
+                new AtaquePaso { Icono = "📂", Texto = "Empleado abre correo", Color = ColorConstants.TextoSecundario },
+                new AtaquePaso { Icono = "🔗", Texto = "Hace clic en enlace malicioso", Color = ColorConstants.EstadoEsperando },
+                new AtaquePaso { Icono = "🌐", Texto = "Abre página falsa", Color = ColorConstants.AlertaAtaque },
+                new AtaquePaso { Icono = "🔑", Texto = "Ingresa credenciales", Color = ColorConstants.EstadoEsperando },
+                new AtaquePaso { Icono = "💀", Texto = "Credenciales robadas", Color = ColorConstants.AlertaAtaque },
+                new AtaquePaso { Icono = "💻", Texto = "Atacante obtiene acceso", Color = ColorConstants.AlertaAtaque },
+            };
+
+            // Decidir si la política bloquea o no (probabilidad de bloqueo ~40%)
+            bool bloqueado = _random.Next(100) < 40;
+
+            if (bloqueado)
+            {
+                pasosBase.Add(new AtaquePaso { Icono = "🛡", Texto = "Política detecta acceso anómalo", Color = ColorConstants.AcentoPrincipal });
+                pasosBase.Add(new AtaquePaso { Icono = "🚫", Texto = "Acceso bloqueado", Color = ColorConstants.AlertaAtaque });
+            }
+            else
+            {
+                pasosBase.Add(new AtaquePaso { Icono = "📝", Texto = "Escritura maliciosa en menú", Color = ColorConstants.AlertaAtaque });
+                pasosBase.Add(new AtaquePaso { Icono = "⚠️", Texto = "Menú comprometido", Color = ColorConstants.AlertaAtaque });
+                // Luego la política eventualmente lo detecta (lo agregamos después)
+                pasosBase.Add(new AtaquePaso { Icono = "🛡", Texto = "Política detecta cambios masivos", Color = ColorConstants.AcentoPrincipal });
+                pasosBase.Add(new AtaquePaso { Icono = "🔒", Texto = "Cuenta bloqueada", Color = ColorConstants.AcentoExito });
+            }
+
+            // Tomar solo los primeros 5-6 pasos para no alargar demasiado
+            int tomar = Math.Min(pasosBase.Count, 6);
+            for (int i = 0; i < tomar; i++)
+                _pasosPendientes.Enqueue(pasosBase[i]);
+        }
+
+        private void MostrarPaso(AtaquePaso paso)
+        {
+            _flowPasos.Controls.Clear();
+
+            var panelPaso = new Panel
+            {
+                AutoSize = false,
+                Size = new Size(_flowPasos.Width - 12, 40),
+                BackColor = Color.FromArgb(40, paso.Color),
+                Margin = new Padding(4)
+            };
+            panelPaso.Paint += (s, e) =>
+            {
+                var rect = new Rectangle(0, 0, panelPaso.Width - 1, panelPaso.Height - 1);
+                using var pen = new Pen(Color.FromArgb(180, paso.Color), 1);
+                e.Graphics.DrawRectangle(pen, rect);
+            };
+
+            var lblIcono = new Label
+            {
+                Text = paso.Icono,
+                Font = new Font("Segoe UI Emoji", 18f),
+                ForeColor = paso.Color,
+                BackColor = Color.Transparent,
+                AutoSize = false,
+                Size = new Size(40, 40),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Location = new Point(4, 0)
+            };
+            var lblTexto = new Label
+            {
+                Text = paso.Texto,
+                Font = AppTheme.FuenteLabelBold,
+                ForeColor = paso.Color,
+                BackColor = Color.Transparent,
+                AutoSize = false,
+                Size = new Size(panelPaso.Width - 52, 40),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Location = new Point(44, 0)
+            };
+
+            panelPaso.Controls.Add(lblIcono);
+            panelPaso.Controls.Add(lblTexto);
+
+            panelPaso.Size = new Size(_flowPasos.Width - 12, 40);
+            _flowPasos.Controls.Add(panelPaso);
+        }
+
+        private void AgregarPaso(string icono, string texto, Color color)
+        {
+            var paso = new AtaquePaso { Icono = icono, Texto = texto, Color = color };
+            MostrarPaso(paso);
+        }
+
+        private void AgregarEvento(string mensaje)
+        {
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string linea = $"{timestamp}  {mensaje}";
+            _listEventos.Items.Insert(0, linea);
+            if (_listEventos.Items.Count > 200)
+                _listEventos.Items.RemoveAt(_listEventos.Items.Count - 1);
+        }
+
+        // ─── CIERRE ──────────────────────────────────────────────────────────
+
         private void CerrarVentana()
         {
+            _timerAtaque?.Stop();
             if (_service.EstaCorreindo) _service.Detener();
             if (_attackService.IsAttackActive) _attackService.DesactivarAtaque();
             Close();
@@ -216,6 +557,15 @@ namespace RestauranteSO.Presentation.Forms
                 cp.ClassStyle |= CS_DROPSHADOW;
                 return cp;
             }
+        }
+
+        // ─── CLASE AUXILIAR ─────────────────────────────────────────────────
+
+        private sealed class AtaquePaso
+        {
+            public string Icono { get; init; } = "";
+            public string Texto { get; init; } = "";
+            public Color Color { get; init; }
         }
     }
 }
