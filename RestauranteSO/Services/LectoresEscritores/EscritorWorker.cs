@@ -1,12 +1,3 @@
-// =============================================================================
-// RestauranteSO - Sistema de Simulación de Sistemas Operativos
-// Archivo  : Services/LectoresEscritores/EscritorWorker.cs
-// Propósito: Hilo Escritor. Simula al Gerente modificando el menú.
-//            Solo puede haber UN escritor activo y NINGÚN lector simultáneo.
-// SOLID    : SRP, DIP.
-// Thread   : Task (consistente con los lectores en esta simulación).
-// =============================================================================
-
 using RestauranteSO.Constants;
 using RestauranteSO.Domain.Entities;
 using RestauranteSO.Domain.Enums;
@@ -15,27 +6,7 @@ using RestauranteSO.Domain.Models;
 
 namespace RestauranteSO.Services.LectoresEscritores
 {
-    /// <summary>
-    /// Worker Escritor para la simulación Lectores-Escritores.
-    ///
-    /// FLUJO DE EJECUCIÓN:
-    ///   1. Esperar intervalo largo (el gerente no modifica el menú constantemente).
-    ///   2. Esperar si pausado.
-    ///   3. Adquirir WriteLock (EnterWriteLock()).
-    ///      → BLOQUEA hasta que TODOS los lectores liberen ReadLock.
-    ///      → Una vez adquirido, NINGÚN lector puede adquirir ReadLock.
-    ///   4. Modificar un item del menú.
-    ///   5. Liberar WriteLock (ExitWriteLock()).
-    ///      → Desbloquea todos los lectores que estaban esperando.
-    ///   6. Notificar a la UI.
-    ///   7. Volver al paso 1.
-    ///
-    /// STARVATION:
-    ///   ReaderWriterLockSlim en .NET usa un mecanismo de fairness que evita
-    ///   que los escritores esperen indefinidamente cuando hay muchos lectores.
-    ///   Si hay escritores esperando, nuevos lectores deben esperar también.
-    /// </summary>
-    public sealed class EscritorWorker
+    public sealed class EscritorWorker : IDisposable
     {
         // ─── DEPENDENCIAS ─────────────────────────────────────────────────────
 
@@ -49,6 +20,7 @@ namespace RestauranteSO.Services.LectoresEscritores
 
         private volatile int _velocidadMs;
         private readonly Random _random;
+        private bool _disposed = false;
 
         // ─── ESTADO OBSERVABLE ────────────────────────────────────────────────
 
@@ -90,94 +62,101 @@ namespace RestauranteSO.Services.LectoresEscritores
 
         public async Task EjecutarAsync(CancellationToken token)
         {
+            if (_disposed) throw new ObjectDisposedException(nameof(EscritorWorker));
+
             _logger.Log(
                 $"🟢 Escritor iniciado: {_gerente} (Gerente del restaurante)",
                 LogLevel.Sync,
                 _gerente);
 
-            while (!token.IsCancellationRequested)
+            while (!token.IsCancellationRequested && !_disposed)
             {
                 try
                 {
-                    // Esperar el intervalo entre modificaciones
+                    // Esperar el intervalo entre modificaciones (FUERA del lock)
                     await Task.Delay(_velocidadMs, token);
 
-                    _eventoPausa.Wait(200, token);
-                    if (token.IsCancellationRequested) break;
+                    // Verificar pausa y cancelación
+                    if (!_eventoPausa.Wait(200, token))
+                        continue;
+                    if (token.IsCancellationRequested)
+                        break;
 
-                    // ── Preparar modificación ─────────────────────────────────
+                    // ── Preparar escritura ────────────────────────────────────
                     EstaEsperando  = true;
                     EstaEscribiendo = false;
 
                     _logger.Log(
-                        $"✏ {_gerente} esperando WriteLock " +
-                        $"[Lectores activos={_rwLock.CurrentReadCount}, " +
-                        $"EscritorEsperando={_rwLock.WaitingWriteCount > 0}]",
+                        $"✏ {_gerente} esperando WriteLock [Lectores activos={_rwLock.CurrentReadCount}, EscritorEsperando={_rwLock.WaitingWriteCount > 0}]",
                         LogLevel.Sync,
                         _gerente);
 
                     // ── Adquirir WriteLock ────────────────────────────────────
-                    // EnterWriteLock() bloquea hasta que:
-                    //   1. Todos los ReadLocks activos sean liberados.
-                    //   2. No haya otros escritores.
-                    // Durante este bloqueo, NINGÚN nuevo ReadLock es concedido.
-                    // Esto garantiza exclusión mutua total durante la escritura.
-                    _rwLock.EnterWriteLock();
-
+                    bool lockAdquirido = false;
                     try
                     {
-                        EstaEsperando   = false;
-                        EstaEscribiendo = true;
-
+                        _rwLock.EnterWriteLock();
+                        lockAdquirido = true;
+                    }
+                    catch (Exception ex)
+                    {
                         _logger.Log(
-                            $"🔐 {_gerente} adquirió WriteLock EXCLUSIVO " +
-                            $"[Lectores bloqueados, solo escritor activo]",
-                            LogLevel.Sync,
+                            $"Error al adquirir WriteLock en {_gerente}: {ex.Message}",
+                            LogLevel.Error,
                             _gerente);
+                        await Task.Delay(1000, token);
+                        continue;
+                    }
 
-                        // ── Modificar el menú ─────────────────────────────────
-                        var items = _menuRepo.ObtenerCompleto();
-                        if (items.Count > 0)
+                    if (lockAdquirido)
+                    {
+                        try
                         {
-                            var item = items[_random.Next(items.Count)];
-
-                            string nombreNuevo  = item.Nombre + " (actualizado)";
-                            decimal precioNuevo = item.Precio * (decimal)(0.9 + _random.NextDouble() * 0.3);
-
-                            item.AplicarModificacion(nombreNuevo, precioNuevo, _gerente);
-                            _menuRepo.Actualizar(item);
-
-                            UltimaModificacion = $"{item.NombreOriginal} → {nombreNuevo} " +
-                                                 $"${item.PrecioOriginal:N2} → ${precioNuevo:N2}";
-
-                            _estado.IncrementarEscrituras();
-
-                            // Simular tiempo de escritura
-                            await Task.Delay(
-                                AppConstants.VelocidadEscritorBaseMs, token);
+                            EstaEsperando   = false;
+                            EstaEscribiendo = true;
 
                             _logger.Log(
-                                $"✅ {_gerente} modificó menú: {UltimaModificacion}",
-                                LogLevel.Info,
+                                $"🔐 {_gerente} adquirió WriteLock EXCLUSIVO [Lectores bloqueados, solo escritor activo]",
+                                LogLevel.Sync,
                                 _gerente);
 
-                            ModificacionRealizada?.Invoke(this, UltimaModificacion);
-                        }
-                    }
-                    finally
-                    {
-                        // ── Liberar WriteLock SIEMPRE ─────────────────────────
-                        // CRITICAL: ExitWriteLock() en finally.
-                        // Si no se libera, todos los lectores quedan bloqueados
-                        // permanentemente (deadlock).
-                        _rwLock.ExitWriteLock();
-                        EstaEscribiendo = false;
+                            // ── Modificar el menú (operación rápida) ──────────
+                            var items = _menuRepo.ObtenerCompleto();
+                            if (items.Count > 0)
+                            {
+                                var item = items[_random.Next(items.Count)];
 
-                        _logger.Log(
-                            $"🔓 {_gerente} liberó WriteLock " +
-                            $"[Lectores pueden continuar]",
-                            LogLevel.Sync,
-                            _gerente);
+                                string nombreNuevo  = item.Nombre + " (actualizado)";
+                                decimal precioNuevo = item.Precio * (decimal)(0.9 + _random.NextDouble() * 0.3);
+
+                                item.AplicarModificacion(nombreNuevo, precioNuevo, _gerente);
+                                _menuRepo.Actualizar(item);
+
+                                UltimaModificacion = $"{item.NombreOriginal} → {nombreNuevo} ${item.PrecioOriginal:N2} → ${precioNuevo:N2}";
+                                _estado.IncrementarEscrituras();
+
+                                _logger.Log(
+                                    $"✅ {_gerente} modificó menú: {UltimaModificacion}",
+                                    LogLevel.Info,
+                                    _gerente);
+
+                                ModificacionRealizada?.Invoke(this, UltimaModificacion);
+                            }
+                        }
+                        finally
+                        {
+                            // ── Liberar WriteLock SIEMPRE ─────────────────────
+                            if (lockAdquirido)
+                            {
+                                _rwLock.ExitWriteLock();
+                                EstaEscribiendo = false;
+
+                                _logger.Log(
+                                    $"🔓 {_gerente} liberó WriteLock [Lectores pueden continuar]",
+                                    LogLevel.Sync,
+                                    _gerente);
+                            }
+                        }
                     }
                 }
                 catch (OperationCanceledException)
@@ -186,11 +165,13 @@ namespace RestauranteSO.Services.LectoresEscritores
                 }
                 catch (Exception ex)
                 {
+                    // Si ocurre un error inesperado y el lock está tomado, liberarlo
                     if (_rwLock.IsWriteLockHeld)
-                        _rwLock.ExitWriteLock();
-
-                    EstaEscribiendo = false;
-                    EstaEsperando   = false;
+                    {
+                        try { _rwLock.ExitWriteLock(); } catch { }
+                        EstaEscribiendo = false;
+                    }
+                    EstaEsperando = false;
 
                     _logger.Log(
                         $"Error en {_gerente}: {ex.Message}",
@@ -208,6 +189,12 @@ namespace RestauranteSO.Services.LectoresEscritores
                 $"🔴 Escritor finalizado: {_gerente}",
                 LogLevel.Sync,
                 _gerente);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
         }
     }
 }

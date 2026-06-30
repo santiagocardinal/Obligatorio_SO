@@ -80,7 +80,7 @@ namespace RestauranteSO.Domain.Entities
             LeyoMenuComprometido = false;
             EstaActivo = false;
         }
-
+    public bool EstaBloqueadoPorEscritor { get; set; }
         public override string ToString() =>
             $"{Id} - {LecturasCompletadas} lecturas" +
             (LeyoMenuComprometido ? " ⚠ COMPROMETIDO" : "");

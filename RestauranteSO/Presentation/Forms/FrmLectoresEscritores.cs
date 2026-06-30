@@ -843,31 +843,67 @@ namespace RestauranteSO.Presentation.Forms
         }
 
         private void ActualizarLectores()
+{
+    var meseros = _service.Meseros;
+    while (_flowLectores.Controls.Count < meseros.Count)
+        _flowLectores.Controls.Add(new ThreadStatusIndicator
         {
-            var meseros = _service.Meseros;
-            while (_flowLectores.Controls.Count < meseros.Count)
-                _flowLectores.Controls.Add(new ThreadStatusIndicator
-                {
-                    Width = _flowLectores.Width - 16,
-                    Anchor = AnchorStyles.Left | AnchorStyles.Right,
-                    Margin = new Padding(4)
-                });
+            Width = _flowLectores.Width - 16,
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            Margin = new Padding(4)
+        });
 
-            for (int i = 0; i < meseros.Count; i++)
-            {
-                var m = meseros[i];
-                var ind = (ThreadStatusIndicator)_flowLectores.Controls[i];
-                var estado = m.LeyoMenuComprometido ? ThreadStatusIndicator.EstadoHilo.BajoAtaque :
-                             m.EstaLeyendo ? ThreadStatusIndicator.EstadoHilo.Activo :
-                             m.EstaEsperando ? ThreadStatusIndicator.EstadoHilo.Esperando :
-                             ThreadStatusIndicator.EstadoHilo.Detenido;
-                string accion = m.LeyoMenuComprometido ? $"⚠ Info comprometida v{m.VersionMenuLeida}" :
-                                m.EstaLeyendo ? $"📖 {m.UltimoItemLeido ?? "—"}" :
-                                m.EstaEsperando ? "⏳ Esperando ReadLock..." :
-                                $"✓ {m.LecturasCompletadas} lecturas";
-                ind.ActualizarEstado(m.Id, estado, accion);
-            }
+    for (int i = 0; i < meseros.Count; i++)
+    {
+        var m = meseros[i];
+        var ind = (ThreadStatusIndicator)_flowLectores.Controls[i];
+
+        // 👇 NUEVO: estado de bloqueo por escritor
+        if (m.EstaBloqueadoPorEscritor)
+        {
+            ind.ActualizarEstado(
+                m.Id,
+                ThreadStatusIndicator.EstadoHilo.Esperando,  // amarillo
+                "⛔ Bloqueado por escritor (WriteLock)"
+            );
+            continue;
         }
+
+        // Resto de estados (prioridad: ataque > leyendo > esperando > detenido)
+        if (m.LeyoMenuComprometido)
+        {
+            ind.ActualizarEstado(
+                m.Id,
+                ThreadStatusIndicator.EstadoHilo.BajoAtaque,
+                $"⚠ Info comprometida v{m.VersionMenuLeida}"
+            );
+        }
+        else if (m.EstaLeyendo)
+        {
+            ind.ActualizarEstado(
+                m.Id,
+                ThreadStatusIndicator.EstadoHilo.Activo,
+                $"📖 {m.UltimoItemLeido ?? "—"}"
+            );
+        }
+        else if (m.EstaEsperando)
+        {
+            ind.ActualizarEstado(
+                m.Id,
+                ThreadStatusIndicator.EstadoHilo.Esperando,
+                "⏳ Esperando ReadLock..."
+            );
+        }
+        else
+        {
+            ind.ActualizarEstado(
+                m.Id,
+                ThreadStatusIndicator.EstadoHilo.Detenido,
+                $"✓ {m.LecturasCompletadas} lecturas"
+            );
+        }
+    }
+}
 
         private void ActualizarViz(SimulationStatistics stats)
         {
